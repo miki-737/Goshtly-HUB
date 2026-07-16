@@ -1,120 +1,247 @@
--- =============================================
--- | ARCHITECTURA DE GHOSTLYHUB V2.0            |
--- | By Scripting Developer                |
--- =============================================
+--[[
+    Developer Note: Este script está diseñado para ser un LocalScript y debe estar en ScreenGui.
+    Ha sido refactorizado para tener mejor gestión de eventos (botones) y modularidad.
+    Las funciones complejas (Noclip, Daño) requieren lógica avanzada o comunicación con el servidor.
+]]
 
--- 1. Inicialización del entorno (Simulación Rayfield)
-local function initializeGUI(guiParent)
-    -- Aquí iría la lógica de carga de la ventana y los elementos base,
-    -- siguiendo el estilo que has mostrado.
-    
-    print("🤖 Iniciando GhostlyHUB v2.0...")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService") -- Necesario para ciclos de física
+local UserInputService = game:GetService("UserInputService")
 
-    -- ---------------------------
-    -- [ BLOQUE VISUAL: Creación del Frame Principal ]
-    -- Esta parte simula tu GUI original pero dentro de la estructura modular.
-    -- Aquí se crearían y configurarían los Frames (Main, Menu, Content)
-    -- ... (Toda la lógica de creación de UI que hiciste antes)
-    -- ---------------------------
+local player = Players.LocalPlayer
+local gui = script.Parent
 
-    local Main = guiParent:WaitForChild("GhostlyHUB") -- Asumiendo que ya existe o fue creado.
+-- CONFIGURACIÓN VISUAL Y DE OBJETOS GLOBALES
+local HUB_WIDTH = 500
+local HUB_HEIGHT = 330
+local CORNER_RADIUS = UDim.new(0, 12)
+
+-------------------------------
+-- [ 1. ESTRUCTURA UI PRINCIPAL ]
+-------------------------------
+
+-- Ventana Principal (GhostlyHUB)
+local Main = Instance.new("Frame")
+Main.Name = "GhostlyHUB"
+Main.Size = UDim2.new(0, HUB_WIDTH, 0, HUB_HEIGHT)
+Main.Position = UDim2.new(0.5, -HUB_WIDTH/2, 0.5, -HUB_HEIGHT/2) -- Centrado
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Main.BorderSizePixel = 0
+Main.Parent = gui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = CORNER_RADIUS
+corner.Parent = Main
+
+-- Título (TextLabel)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.BackgroundTransparency = 1
+Title.Text = "👻 GhostlyHUB" -- Usando un emoji para el toque misterioso
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
+
+-- Botón Cerrar (X)
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0, 40, 0, 40)
+Close.Position = UDim2.new(1, -45, 0, 5) -- Ajustado para quedar bien en la esquina
+Close.Text = "X"
+Close.TextScaled = true
+Close.BackgroundColor3 = Color3.fromRGB(170, 40, 40)
+Close.TextColor3 = Color3.new(1, 1, 1)
+Close.Parent = Main
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 6) -- Un poco más pequeño para que se vea mejor
+closeCorner.Parent = Close
+
+-- Conexión de Cerrar
+Close.MouseButton1Click:Connect(function()
+	Main.Visible = false
+end)
 
 
-    -- 2. Configuración y Conexión de Funcionalidades (Event Handlers)
+-------------------------------
+-- [ 2. CONTENEDORES INTERNOS ]
+-------------------------------
 
-    -- Función principal para manejar la acción del botón
-    local function handleButtonAction(buttonName, callbackFunction)
-        -- Esta función enlaza un evento clic a una lógica específica.
-        local button = Main:FindFirstChild("Menu"):FindFirstChild(buttonName)
-        if button then
-            button.MouseButton1Click:Connect(callbackFunction)
-        end
-    end
+-- Menu Lateral (Frame)
+local Menu = Instance.new("Frame")
+Menu.Size = UDim2.new(0, 130, 1, -65) -- Ajustado el tamaño para que no choque con el título
+Menu.Position = UDim2.new(0, 10, 0, 60) -- Empieza debajo del título
+Menu.BackgroundTransparency = 1
+Menu.Parent = Main
 
-    -- ******************************************
-    -- 🔵 BOTÓN PRINCIPAL (🏠 Panel Principal)
-    -- ******************************************
-    handleButtonAction("Principal", function()
-        local Text = Main:FindFirstChild("Content"):FindFirstChild("TextLabel") -- Asumiendo que el Label se llama Text
-        if Text then
-            Text.Text = "✨ Panel de Control Global\n\nAjusta tus poderes con los botones de la izquierda y disfruta la experiencia Ghostly."
+-- Contenido Principal (Frame)
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -160, 1, -70)
+Content.Position = UDim2.new(0, 150, 0, 70) -- Empieza debajo del título y con espacio para la separación
+Content.BackgroundTransparency = 1
+Content.Parent = Main
+
+-- Placeholder de Texto (TextLabel)
+local InfoDisplay = Instance.new("TextLabel")
+InfoDisplay.Size = UDim2.new(1, 0, 1, 0)
+InfoDisplay.BackgroundTransparency = 1
+InfoDisplay.TextColor3 = Color3.new(1, 1, 1)
+InfoDisplay.TextScaled = true
+InfoDisplay.Font = Enum.Font.GothamBold
+InfoDisplay.Parent = Content
+
+-------------------------------
+-- [ 3. FUNCIÓN DE BOTONES ]
+-------------------------------
+
+local function CrearBoton(nombre, posicion, callbackFunction)
+	local Button = Instance.new("TextButton")
+	Button.Name = nombre:gsub("[^%w]", "") -- Limpia el nombre para usarlo como identificador único
+	Button.Size = UDim2.new(1, 0, 0, 40)
+	Button.Position = UDim2.new(0, 0, 0, posicion)
+	Button.Text = nombre
+	Button.TextColor3 = Color3.new(1, 1, 1)
+	Button.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+	Button.Font = Enum.Font.Gotham
+	Button.TextScaled = true
+	Button.Parent = Menu
+
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 8) -- Bordes más suaves
+	c.Parent = Button
+
+    -- Conexión de evento (usamos el callback pasado al crear el botón)
+    Button.MouseButton1Click:Connect(function()
+        if callbackFunction then
+            callbackFunction()
         end
     end)
-
-    -- ******************************************
-    -- 🟡 BOTÓN MINERÍA (⛏️ Minería) -> MANEJO DE DAÑO/PICKAXE
-    -- ******************************************
-    handleButtonAction("Mineria", function()
-        local Text = Main:FindFirstChild("Content"):FindFirstChild("TextLabel")
-        if Text then
-            Text.Text = "💎 Módulo de Minería Activado\n(Pickaxe mejorada) El daño a las rocas ha sido incrementado."
-            -- Aquí se podría activar el sistema de detección de piedras si fuera necesario.
-            local pickaxeModule = require("Modules.MiningSystem") -- Idealmente, esto iría en un módulo separado.
-            pickaxeModule:ActivateBoost() 
-        end
-    end)
-
-
-    -- ******************************************
-    -- 🟢 BOTÓN VENTA (💰 Venta) -> SELL AUTOMÁTICO
-    -- ******************************************
-    handleButtonAction("Venta", function()
-        local Text = Main:FindFirstChild("Content"):FindFirstChild("TextLabel")
-        if Text then
-            Text.Text = "💸 Sistema de Venta Automática.\n(Mineral Buyer) El botón sellará automáticamente los minerales cercanos."
-            -- Llama a la función que interactúa con el NPC.
-            local sellingModule = require("Modules.SellingSystem") 
-            sellingModule:AttemptAutoSell()
-        end
-    end)
-
-
-    -- ******************************************
-    -- 🟣 BOTÓN TOOLS (🔪 Tools) -> SELECCIÓN DE HERRAMIENTAS
-    -- ******************************************
-    handleButtonAction("Tools", function()
-        local Text = Main:FindFirstChild("Content"):FindFirstChild("TextLabel")
-        if Text then
-            Text.Text = "⚔️ Arsenal de Herramientas\nSelecciona y equipa tus herramientas favoritas:"
-        end
-
-        -- Aquí se debe mostrar la lógica del menú desplegable o los botones individuales para seleccionar herramientas.
-    end)
-
-
-    -- 3. Implementación Funcional (El Corazón del Script)
-
-    local NoclipModule = require("Modules.Noclip") -- Asume un módulo de manejo físico
-
-    -- Función global que se llama cuando el usuario quiere activar/desactivar noclip
-    -- Esta función debe ser llamada por un botón dedicado o dentro del evento "Tools".
-    local function ToggleNoclip(state)
-        if state == true then
-            print("🔓 Noclip Activado: ¡Atraviesa paredes!")
-            NoclipModule:Toggle(true) -- Llama a la lógica de noclip
-        else
-            print("🔒 Noclip Desactivado.")
-            NoclipModule:Toggle(false)
-        end
-    end
-
-    -- Ejecutar el módulo al inicio (por ejemplo, lo pones en un botón separado o en "Panel Principal")
-    -- Ejemplo: Botón Noclip.MouseButton1Click:Connect(function() ToggleNoclip(true) end)
-
-
-    -- ********************************************************
-    -- 🧩 Módulos de Funcionalidad Avanzada (CONCEPTOS CLAVE)
-    -- Estos scripts deberían ser ejecutados en la sección 'Source' del executor, no mezclados con la GUI.
-    -- ********************************************************
-
-    return {
-        Noclip = NoclipModule,
-        MiningBoost = require("Modules.MiningSystem"),
-        AutoSell = require("Modules.SellingSystem")
-    }
-
+	return Button
 end
 
--- Ejecutar el sistema de carga (simula la llamada del executor)
-local GUI_ROOT = script.Parent -- Reemplazar con el contenedor real en tu caso
-initializeGUI(GUI_ROOT)
+
+-------------------------------
+-- [ 4. BOTONES Y FUNCIONALIDADES ]
+-------------------------------
+
+-- --- FUNCIÓN DE ESTADO (Actualiza el panel de texto con un título y mensaje)
+local function UpdateDisplay(title, message)
+    InfoDisplay.Text = title .. "\n\n" .. message
+end
+
+-- Función de Noclip: Toggles la propiedad CanCollide del personaje.
+local noclipEnabled = false
+local function ToggleNoclip()
+    if not player.Character then return end
+    local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+
+    noclipEnabled = not noclipEnabled
+    if noclipEnabled then
+        -- Esto requiere que la física lo permita en el cliente, pero es un buen punto de partida.
+        humanoidRootPart.CanCollide = false 
+        UpdateDisplay("💨 Noclip", "¡Activado! Ahora puedes atravesar paredes.")
+    else
+        humanoidRootPart.CanCollide = true
+        UpdateDisplay("💨 Noclip", "Desactivado.")
+    end
+end
+
+-- Función de Herramienta: Equipar la herramienta deseada.
+local function SelectTool(toolName)
+    local toolsFolder = workspace:FindFirstChild("Tools") -- Asumiendo que las herramientas están en Workspace/Tools
+    if not toolsFolder then 
+        print("[ERROR] Carpeta 'Tools' no encontrada en el Workspace.")
+        UpdateDisplay("🛠️ Herramientas", "Error: Asegúrate de que la carpeta 'Tools' exista y contenga los objetos Tool.")
+        return 
+    end
+
+    local tool = toolsFolder:FindFirstChild(toolName)
+    if tool and tool:IsA("Tool") then
+        -- Intenta equipar el objeto directamente al personaje
+        tool:SetAttribute("Equipped", true) -- Truco para forzar la detección de herramientas
+        player.Character:FindFirstChild("Humanoid"):EquipTool(tool)
+        UpdateDisplay("🔪 Herramienta Seleccionada", "Has equipado el '" .. toolName .. "' con éxito.")
+    else
+        UpdateDisplay("🛠️ Herramientas", "Error: No se encontró la herramienta '" .. toolName .. "'.")
+    end
+end
+
+-- Función de Minería/Daño: (Conceptual - Requiere RemoteEvents al Servidor)
+local function MineRocks()
+    UpdateDisplay("⛏️ Minería Avanzada", 
+        "¡Tu pico ahora causa daño amplificado a las rocas en Prisones! (Requiere comunicación con el servidor para ser efectivo.)")
+end
+
+-- Función de Venta: (Conceptual - Requiere RemoteEvents al Servidor)
+local function SellMinerals()
+    UpdateDisplay("💰 Mineral Buyer", 
+        "¡Vendido automáticamente! Envía una señal al NPC 'Mineral Buyer' en el servidor.")
+end
+
+
+-------------------------------
+-- [ 5. CREACIÓN DE BOTONES ]
+-------------------------------
+
+-- 1. Noclip Button (Usamos un ícono de velocidad/fantasma)
+local NoclipBtn = CrearBoton("👻 No Clip", 0, ToggleNoclip)
+
+-- 2. Minería (Función con callbacks)
+local MineriaBtn = CrearBoton("⛏️ Minería", 50, MineRocks)
+
+-- 3. Venta de Minerales
+local VentaBtn = CrearBoton("💰 Vender Min.", 100, SellMinerals)
+
+-- 4. Botón de Gestión de Herramientas (Más complejo, usamos un botón maestro)
+local ToolsBtn = CrearBoton("🔪 Select Tool", 150, function()
+    UpdateDisplay("⚙️ Selector de Tools", "Elige qué herramienta deseas equipar:")
+    
+    -- Aquí puedes crear botones dinámicos para cada tool:
+    local folder = Instance.new("Frame")
+    folder.Parent = Content
+    folder.Size = UDim2.new(1, 0, 0, 150) -- Área de selección temporal
+    
+    local toolsFolder = workspace:FindFirstChild("Tools")
+
+    if toolsFolder then
+        for _, tool in ipairs(toolsFolder:GetChildren()) do
+            if tool:IsA("Tool") and (tool.Name == "CombatKnife" or tool.Name == "Pistol") then
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1, 0, 0, 40)
+                Btn.Position = UDim2.new(0, 0, (math.floor((#toolsFolder)/2 - 1)*50), 0) -- Posicionamiento básico
+                Btn.Text = tool.Name .. " (Equipar)"
+                Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+                Btn.Parent = folder
+                
+                local connection = Btn.MouseButton1Click:Connect(function()
+                    SelectTool(tool.Name) -- Llama a la función de selección
+                    -- Desactivar/limpiar el selector después del uso
+                    folder.Visible = false 
+                end)
+            end
+        end
+        folder.Visible = true
+
+    else
+         UpdateDisplay("🛠️ Selector de Tools", "Error: La carpeta 'Tools' no fue encontrada en Workspace.")
+    end
+end)
+
+
+-------------------------------
+-- [ 6. ANIMACIÓN DE ENTRADA ]
+-------------------------------
+
+-- Inicializar el tamaño a cero para la animación
+Main.Size = UDim2.new(0, 0, 0, 0)
+
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out) -- Usamos Back para un efecto de rebote más dramático
+local goal = {
+    Size = UDim2.new(0, HUB_WIDTH, 0, HUB_HEIGHT)
+}
+
+TweenService:Create(Main, tweenInfo, goal):Play()
+
+-- Inicializar el display al cargar
+UpdateDisplay("✨ GhostlyHUB", "Bienvenido al Panel Principal. ¡Haz clic en una opción para empezar!")
