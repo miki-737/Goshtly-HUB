@@ -1,217 +1,152 @@
-if game.PlaceId == 81223687051453 then
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local player = Players.LocalPlayer
 
-local Window = Rayfield:CreateWindow({
-
-Name = "GhostlyHUB",
-
-LoadingTitle = "GhostlyHUB",
-
-LoadingSubtitle = "Sistema privado",
-
-ConfigurationSaving = {
-    Enabled = true,
-    FolderName = "GhostlyHUB",
-    FileName = "Config"
-},
-
-Discord = {
-    Enabled = false
-},
-
-KeySystem = false
-
-})
+local gui = script.Parent
 
 
--- TAB PRINCIPAL
+-- VENTANA PRINCIPAL
 
-local Main = Window:CreateTab("🏠 Principal", 4483362458)
-
-
-local noclip = false
-
-
-Main:CreateToggle({
-
-Name = "Noclip",
-
-CurrentValue = false,
-
-Callback = function(Value)
-
-noclip = Value
-
-end
-
-})
+local Main = Instance.new("Frame")
+Main.Name = "GhostlyHUB"
+Main.Size = UDim2.new(0,500,0,330)
+Main.Position = UDim2.new(0.5,-250,0.5,-165)
+Main.BackgroundColor3 = Color3.fromRGB(20,20,25)
+Main.BorderSizePixel = 0
+Main.Parent = gui
 
 
-game:GetService("RunService").Stepped:Connect(function()
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,12)
+corner.Parent = Main
 
-if noclip then
 
-local char = game.Players.LocalPlayer.Character
 
-if char then
+-- TITULO
 
-for _,part in pairs(char:GetDescendants()) do
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,0,0,50)
+Title.BackgroundTransparency = 1
+Title.Text = "GhostlyHUB"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextScaled = true
+Title.Font = Enum.Font.GothamBold
+Title.Parent = Main
 
-if part:IsA("BasePart") then
 
-part.CanCollide = false
 
-end
+-- BOTON CERRAR
 
-end
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0,40,0,40)
+Close.Position = UDim2.new(1,-45,0,5)
+Close.Text = "X"
+Close.TextScaled = true
+Close.BackgroundColor3 = Color3.fromRGB(170,40,40)
+Close.TextColor3 = Color3.new(1,1,1)
+Close.Parent = Main
 
-end
 
-end
+local closeCorner = Instance.new("UICorner")
+closeCorner.Parent = Close
 
+
+
+Close.MouseButton1Click:Connect(function()
+	Main.Visible = false
 end)
 
 
 
--- MINERIA
+-- MENU LATERAL
 
-local Mining = Window:CreateTab("⛏️ Minería",4483362458)
-
-
-
-Mining:CreateButton({
-
-Name = "Equipar Pickaxe",
-
-Callback = function()
-
-local tool = game.ReplicatedStorage.Tools:FindFirstChild("Pickaxe")
-
-if tool then
-
-tool:Clone().Parent =
-game.Players.LocalPlayer.Backpack
-
-end
-
-end
-
-})
+local Menu = Instance.new("Frame")
+Menu.Size = UDim2.new(0,130,1,-60)
+Menu.Position = UDim2.new(0,10,0,55)
+Menu.BackgroundTransparency = 1
+Menu.Parent = Main
 
 
-Mining:CreateButton({
 
-Name = "Mejorar daño Pickaxe",
-
-Callback = function()
-
-local pickaxe =
-game.Players.LocalPlayer.Backpack:FindFirstChild("Pickaxe")
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1,-160,1,-70)
+Content.Position = UDim2.new(0,150,0,60)
+Content.BackgroundTransparency = 1
+Content.Parent = Main
 
 
-if pickaxe then
 
-pickaxe:SetAttribute("Damage",999)
+local function CrearBoton(nombre, posicion)
 
+	local Button = Instance.new("TextButton")
+
+	Button.Size = UDim2.new(1,0,0,40)
+	Button.Position = UDim2.new(0,0,0,posicion)
+	Button.Text = nombre
+	Button.TextColor3 = Color3.new(1,1,1)
+	Button.BackgroundColor3 = Color3.fromRGB(35,35,45)
+	Button.Font = Enum.Font.Gotham
+	Button.TextScaled = true
+	Button.Parent = Menu
+
+
+	local c = Instance.new("UICorner")
+	c.Parent = Button
+
+
+	return Button
 end
 
 
-end
 
-})
-
-
-
--- VENTA
-
-local Sell = Window:CreateTab("💰 Venta",4483362458)
+local Principal = CrearBoton("🏠 Principal",0)
+local Mineria = CrearBoton("⛏️ Minería",50)
+local Venta = CrearBoton("💰 Venta",100)
+local Tools = CrearBoton("🔪 Tools",150)
 
 
 
-Sell:CreateButton({
-
-Name = "Vender minerales",
-
-Callback=function()
-
-
-local npc =
-workspace:FindFirstChild("Mineral Buyer")
-
-
-if npc then
-
-local prompt =
-npc:FindFirstChildWhichIsA("ProximityPrompt",true)
-
-
-if prompt then
-
-fireproximityprompt(prompt)
-
-end
-
-end
-
-
-end
-
-})
+local Texto = Instance.new("TextLabel")
+Texto.Size = UDim2.new(1,0,1,0)
+Texto.BackgroundTransparency = 1
+Texto.Text = "Bienvenido a GhostlyHUB"
+Texto.TextColor3 = Color3.new(1,1,1)
+Texto.TextScaled = true
+Texto.Font = Enum.Font.GothamBold
+Texto.Parent = Content
 
 
 
--- TOOLS
-
-local Tools = Window:CreateTab("🔪 Tools",4483362458)
-
-
-
-Tools:CreateButton({
-
-Name="Obtener CombatKnife",
-
-Callback=function()
-
-local tool =
-game.ReplicatedStorage.Tools:FindFirstChild("CombatKnife")
+Principal.MouseButton1Click:Connect(function()
+	Texto.Text="🏠 Panel Principal\n\nSistema GhostlyHUB"
+end)
 
 
-if tool then
-
-tool:Clone().Parent =
-game.Players.LocalPlayer.Backpack
-
-end
+Mineria.MouseButton1Click:Connect(function()
+	Texto.Text="⛏️ Minería\n\nPickaxe mejorado"
+end)
 
 
-end
-
-})
-
-
-Tools:CreateButton({
-
-Name="Obtener Pistol",
-
-Callback=function()
+Venta.MouseButton1Click:Connect(function()
+	Texto.Text="💰 Venta\n\nMineral Buyer"
+end)
 
 
-local tool =
-game.ReplicatedStorage.Tools:FindFirstChild("Pistol")
+Tools.MouseButton1Click:Connect(function()
+	Texto.Text="🔪 Tools\n\nCombatKnife\nPistol"
+end)
 
 
-if tool then
 
-tool:Clone().Parent =
-game.Players.LocalPlayer.Backpack
+-- ANIMACION DE ENTRADA
 
-end
+Main.Size = UDim2.new(0,0,0,0)
 
-
-end
-
-})
-
-
-end
+TweenService:Create(
+	Main,
+	TweenInfo.new(0.5,Enum.EasingStyle.Back),
+	{
+		Size=UDim2.new(0,500,0,330)
+	}
+):Play()
