@@ -1,15 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
--- 👻 GHOSTLYHUB v2.0 - Delta Executor Optimizado
--- Juego: Prison Mining (PlaceId: 81223687051453)
--- Creado por: GhostlyDev
+-- 👻 GHOSTLYHUB v2.0 - Universal (Sin verificación de juego)
+-- Compatible con: Delta, Synapse X, KRNL, Fluxus, Electron
 -- ═══════════════════════════════════════════════════════════════════════════════
-
--- Verificación de juego
-if game.PlaceId ~= 81223687051453 then
-    warn("👻 [GhostlyHUB] Este script solo funciona en Prison Mining!")
-    game:GetService("Players").LocalPlayer:Kick("Este HUB solo funciona en Prison Mining (PlaceId: 81223687051453)")
-    return
-end
 
 -- Cargar Rayfield con manejo de errores
 local success, Rayfield = pcall(function()
@@ -17,19 +9,18 @@ local success, Rayfield = pcall(function()
 end)
 
 if not success or not Rayfield then
-    warn("👻 [GhostlyHUB] Error cargando Rayfield. Intentando método alternativo...")
     -- Intentar con URL alternativa
     success, Rayfield = pcall(function()
         return loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
     end)
     
     if not success then
-        error("👻 [GhostlyHUB] No se pudo cargar la interfaz. Intenta reiniciar el juego.")
+        warn("Error cargando interfaz. Intenta reiniciar.")
         return
     end
 end
 
--- Variables globales
+-- Variables
 local Player = game:GetService("Players").LocalPlayer
 local Character = Player.Character or Player.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
@@ -37,71 +28,57 @@ local HRP = Character:WaitForChild("HumanoidRootPart")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
--- Estados
 local NoclipEnabled = false
 local SuperPickaxeEnabled = false
 local AutoSellEnabled = false
 local AutoMineEnabled = false
 
--- Conexiones para poder detenerlas
 local NoclipConnection = nil
-local SuperPickaxeConnection = nil
-local AutoSellConnection = nil
+local AutoSellThread = nil
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- CREAR VENTANA RAYFIELD
+-- VENTANA PRINCIPAL
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local Window = Rayfield:CreateWindow({
     Name = "👻 GhostlyHUB",
     LoadingTitle = "GhostlyHUB",
-    LoadingSubtitle = "Cargando interfaz...",
+    LoadingSubtitle = "Cargando...",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "GhostlyHUB",
         FileName = "Config"
     },
-    Discord = {
-        Enabled = false,
-        Invite = "",
-        RememberJoins = false
-    },
+    Discord = { Enabled = false, Invite = "", RememberJoins = false },
     KeySystem = false,
 })
 
--- Notificación de inicio
 Rayfield:Notify({
     Title = "👻 GhostlyHUB",
-    Content = "Script cargado exitosamente!",
-    Duration = 4,
+    Content = "Script cargado!",
+    Duration = 3,
     Image = 4483362458,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- PESTAÑA: INICIO (Noclip & AutoSell)
+-- PESTAÑA: PRINCIPAL
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local MainTab = Window:CreateTab("🏠 Principal", 4483362458)
 
 MainTab:CreateSection("Movimiento")
 
--- NOCLIP MEJORADO
-local NoclipToggle = MainTab:CreateToggle({
-    Name = "👻 Noclip (Atravesar Todo)",
+-- NOCLIP
+MainTab:CreateToggle({
+    Name = "👻 Noclip (Atravesar Paredes)",
     CurrentValue = false,
     Flag = "Noclip_Ghostly",
     Callback = function(Value)
         NoclipEnabled = Value
         
         if NoclipEnabled then
-            Rayfield:Notify({
-                Title = "Noclip Activado",
-                Content = "Puedes atravesar paredes, puertas y objetos.",
-                Duration = 3,
-                Image = 4483362458,
-            })
+            Rayfield:Notify({ Title = "Noclip", Content = "Activado!", Duration = 2 })
             
-            -- Crear conexión de noclip
             NoclipConnection = RunService.Stepped:Connect(function()
                 if not NoclipEnabled then return end
                 if Player.Character then
@@ -113,18 +90,11 @@ local NoclipToggle = MainTab:CreateToggle({
                 end
             end)
         else
-            Rayfield:Notify({
-                Title = "Noclip Desactivado",
-                Content = "Colisión restaurada.",
-                Duration = 2,
-            })
-            
+            Rayfield:Notify({ Title = "Noclip", Content = "Desactivado", Duration = 2 })
             if NoclipConnection then
                 NoclipConnection:Disconnect()
                 NoclipConnection = nil
             end
-            
-            -- Restaurar colisión
             if Player.Character then
                 for _, part in pairs(Player.Character:GetDescendants()) do
                     if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
@@ -136,125 +106,72 @@ local NoclipToggle = MainTab:CreateToggle({
     end,
 })
 
-MainTab:CreateSection("Venta de Minerales")
+MainTab:CreateSection("Venta")
 
--- BOTÓN VENDER AHORA
+-- VENDER MANUAL
 MainTab:CreateButton({
-    Name = "💰 Vender Minerales (Manual)",
+    Name = "💰 Vender Ahora (Mineral Buyer)",
     Callback = function()
-        local success, err = pcall(function()
-            local MineralBuyer = Workspace:FindFirstChild("Mineral Buyer")
-            
-            if not MineralBuyer then
-                Rayfield:Notify({
-                    Title = "Error",
-                    Content = "No se encontró 'Mineral Buyer' en el mapa.",
-                    Duration = 3,
-                    Image = 4483362458,
-                })
-                return
-            end
-            
-            if not Player.Character or not HRP then
-                Rayfield:Notify({
-                    Title = "Error",
-                    Content = "Personaje no cargado.",
-                    Duration = 3,
-                })
-                return
-            end
-            
-            -- Guardar posición original
-            local originalCFrame = HRP.CFrame
-            
-            -- Buscar parte del buyer
-            local buyerPart = MineralBuyer:FindFirstChild("HumanoidRootPart") or 
-                             MineralBuyer:FindFirstChild("Head") or 
-                             MineralBuyer:FindFirstChildWhichIsA("BasePart")
-            
-            if buyerPart then
-                -- Teletransportar
-                HRP.CFrame = buyerPart.CFrame + Vector3.new(0, 5, 0)
-                
-                task.wait(0.5)
-                
-                -- Buscar y activar prompts
-                local activated = false
-                for _, obj in pairs(MineralBuyer:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then
-                        fireproximityprompt(obj)
-                        activated = true
-                    elseif obj:IsA("ClickDetector") then
-                        fireclickdetector(obj)
-                        activated = true
-                    end
-                end
-                
-                task.wait(0.5)
-                
-                -- Volver a posición original
-                HRP.CFrame = originalCFrame
-                
-                if activated then
-                    Rayfield:Notify({
-                        Title = "Éxito",
-                        Content = "Minerales vendidos!",
-                        Duration = 2,
-                    })
-                else
-                    Rayfield:Notify({
-                        Title = "Advertencia",
-                        Content = "No se encontró botón de venta automático.",
-                        Duration = 3,
-                    })
-                end
-            else
-                Rayfield:Notify({
-                    Title = "Error",
-                    Content = "No se pudo localizar al vendedor.",
-                    Duration = 3,
-                })
-            end
-        end)
+        local MineralBuyer = Workspace:FindFirstChild("Mineral Buyer")
         
-        if not success then
-            warn("Error en venta manual: " .. tostring(err))
+        if not MineralBuyer then
+            Rayfield:Notify({ Title = "Error", Content = "No se encontró Mineral Buyer", Duration = 3 })
+            return
+        end
+        
+        if not HRP then return end
+        
+        local originalCFrame = HRP.CFrame
+        local buyerPart = MineralBuyer:FindFirstChild("HumanoidRootPart") or 
+                         MineralBuyer:FindFirstChild("Head") or 
+                         MineralBuyer:FindFirstChildWhichIsA("BasePart")
+        
+        if buyerPart then
+            HRP.CFrame = buyerPart.CFrame + Vector3.new(0, 5, 0)
+            task.wait(0.5)
+            
+            for _, obj in pairs(MineralBuyer:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    fireproximityprompt(obj)
+                elseif obj:IsA("ClickDetector") then
+                    fireclickdetector(obj)
+                end
+            end
+            
+            task.wait(0.5)
+            HRP.CFrame = originalCFrame
+            
+            Rayfield:Notify({ Title = "Éxito", Content = "Minerales vendidos!", Duration = 2 })
         end
     end,
 })
 
--- AUTO SELL
+-- AUTO VENDER
 MainTab:CreateToggle({
-    Name = "🤖 Auto-Vender (Cada 5 seg)",
+    Name = "🤖 Auto-Vender",
     CurrentValue = false,
     Flag = "AutoSell_Ghostly",
     Callback = function(Value)
         AutoSellEnabled = Value
         
         if AutoSellEnabled then
-            Rayfield:Notify({
-                Title = "Auto-Venta Activada",
-                Content = "Vendiendo automáticamente cada 5 segundos...",
-                Duration = 3,
-            })
+            Rayfield:Notify({ Title = "Auto-Venta", Content = "Activada (cada 5s)", Duration = 2 })
             
-            AutoSellConnection = task.spawn(function()
+            AutoSellThread = task.spawn(function()
                 while AutoSellEnabled do
                     task.wait(5)
-                    
                     if not AutoSellEnabled then break end
                     
                     pcall(function()
                         local MineralBuyer = Workspace:FindFirstChild("Mineral Buyer")
-                        if MineralBuyer and Player.Character and HRP then
+                        if MineralBuyer and HRP then
                             local buyerPart = MineralBuyer:FindFirstChild("HumanoidRootPart") or 
                                              MineralBuyer:FindFirstChild("Head") or 
                                              MineralBuyer:FindFirstChildWhichIsA("BasePart")
                             
                             if buyerPart then
-                                local originalCFrame = HRP.CFrame
+                                local original = HRP.CFrame
                                 HRP.CFrame = buyerPart.CFrame + Vector3.new(0, 5, 0)
-                                
                                 task.wait(0.3)
                                 
                                 for _, obj in pairs(MineralBuyer:GetDescendants()) do
@@ -266,180 +183,129 @@ MainTab:CreateToggle({
                                 end
                                 
                                 task.wait(0.3)
-                                HRP.CFrame = originalCFrame
+                                HRP.CFrame = original
                             end
                         end
                     end)
                 end
             end)
         else
-            Rayfield:Notify({
-                Title = "Auto-Venta",
-                Content = "Desactivada.",
-                Duration = 2,
-            })
+            Rayfield:Notify({ Title = "Auto-Venta", Content = "Desactivada", Duration = 2 })
         end
     end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- PESTAÑA: MINERÍA (Super Pickaxe)
+-- PESTAÑA: MINERÍA
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local MiningTab = Window:CreateTab("⛏️ Minería", 4483362458)
 
-MiningTab:CreateSection("Herramientas de Minería")
+MiningTab:CreateSection("Herramientas")
 
 -- EQUIPAR PICKAXE
 MiningTab:CreateButton({
     Name = "🎒 Equipar Pickaxe",
     Callback = function()
         local Backpack = Player:WaitForChild("Backpack")
-        local Character = Player.Character
-        
-        -- Buscar en backpack
         local pickaxe = Backpack:FindFirstChild("Pickaxe")
+        
         if pickaxe then
             Humanoid:EquipTool(pickaxe)
-            Rayfield:Notify({
-                Title = "Éxito",
-                Content = "Pickaxe equipada desde backpack!",
-                Duration = 2,
-            })
-            return
+            Rayfield:Notify({ Title = "Éxito", Content = "Pickaxe equipada!", Duration = 2 })
+        elseif Player.Character:FindFirstChild("Pickaxe") then
+            Rayfield:Notify({ Title = "Info", Content = "Ya equipada", Duration = 2 })
+        else
+            Rayfield:Notify({ Title = "Error", Content = "No tienes Pickaxe", Duration = 2 })
         end
-        
-        -- Buscar si ya está equipada
-        if Character and Character:FindFirstChild("Pickaxe") then
-            Rayfield:Notify({
-                Title = "Info",
-                Content = "Ya tienes la Pickaxe equipada.",
-                Duration = 2,
-            })
-            return
-        end
-        
-        Rayfield:Notify({
-            Title = "Error",
-            Content = "No tienes una Pickaxe. Consigue una primero!",
-            Duration = 3,
-        })
     end,
 })
 
--- SUPER PICKAXE (DAÑO AUMENTADO)
+-- SUPER PICKAXE
 MiningTab:CreateToggle({
-    Name = "⚡ Super Pickaxe (Golpes Rápidos)",
+    Name = "⚡ Super Pickaxe (Rápido)",
     CurrentValue = false,
     Flag = "SuperPickaxe_Ghostly",
     Callback = function(Value)
         SuperPickaxeEnabled = Value
         
         if SuperPickaxeEnabled then
-            Rayfield:Notify({
-                Title = "Super Pickaxe",
-                Content = "Modo rápido activado! Golpea más veces por segundo.",
-                Duration = 3,
-            })
+            Rayfield:Notify({ Title = "Super Pickaxe", Content = "Activado!", Duration = 2 })
             
-            SuperPickaxeConnection = task.spawn(function()
+            task.spawn(function()
                 while SuperPickaxeEnabled do
-                    task.wait(0.1) -- 10 golpes por segundo
-                    
+                    task.wait(0.1)
                     if not SuperPickaxeEnabled then break end
                     
-                    pcall(function()
-                        local Character = Player.Character
-                        if not Character then return end
+                    local Character = Player.Character
+                    if not Character then continue end
+                    
+                    local tool = Character:FindFirstChildOfClass("Tool")
+                    if tool and (tool.Name == "Pickaxe" or tool.Name:lower():find("pick")) then
+                        if tool.Activate then tool:Activate() end
                         
-                        local tool = Character:FindFirstChildOfClass("Tool")
-                        if tool and (tool.Name == "Pickaxe" or tool.Name:lower():find("pick")) then
-                            -- Activar herramienta
-                            if tool.Activate then
-                                tool:Activate()
-                            end
-                            
-                            -- Buscar rocas cercanas y golpear
-                            local Prisones = Workspace:FindFirstChild("Prisones")
-                            if Prisones then
-                                local Rocks = Prisones:FindFirstChild("Rocks")
-                                if Rocks and HRP then
-                                    for _, rock in pairs(Rocks:GetChildren()) do
-                                        if rock.Name == "Part" and rock:IsA("BasePart") then
-                                            local distance = (rock.Position - HRP.Position).Magnitude
-                                            if distance < 12 then
-                                                -- Simular múltiples golpes
-                                                if firetouchinterest then
-                                                    firetouchinterest(HRP, rock, 0)
-                                                    firetouchinterest(HRP, rock, 1)
-                                                end
+                        -- Golpear rocas en Prisones>Rocks
+                        local Prisones = Workspace:FindFirstChild("Prisones")
+                        if Prisones then
+                            local Rocks = Prisones:FindFirstChild("Rocks")
+                            if Rocks and HRP then
+                                for _, rock in pairs(Rocks:GetChildren()) do
+                                    if rock.Name == "Part" and rock:IsA("BasePart") then
+                                        if (rock.Position - HRP.Position).Magnitude < 12 then
+                                            if firetouchinterest then
+                                                firetouchinterest(HRP, rock, 0)
+                                                firetouchinterest(HRP, rock, 1)
                                             end
                                         end
                                     end
                                 end
                             end
                         end
-                    end)
+                    end
                 end
             end)
         else
-            Rayfield:Notify({
-                Title = "Super Pickaxe",
-                Content = "Modo normal restaurado.",
-                Duration = 2,
-            })
+            Rayfield:Notify({ Title = "Super Pickaxe", Content = "Desactivado", Duration = 2 })
         end
     end,
 })
 
--- AUTO MINAR (Golpea automáticamente rocas cercanas)
+-- AUTO MINAR
 MiningTab:CreateToggle({
-    Name = "🤖 Auto-Minar (Golpea Rocas)",
+    Name = "🤖 Auto-Minar",
     CurrentValue = false,
     Flag = "AutoMine_Ghostly",
     Callback = function(Value)
         AutoMineEnabled = Value
         
         if AutoMineEnabled then
-            Rayfield:Notify({
-                Title = "Auto-Minar",
-                Content = "Golpeando rocas automáticamente...",
-                Duration = 3,
-            })
+            Rayfield:Notify({ Title = "Auto-Minar", Content = "Activado", Duration = 2 })
             
             task.spawn(function()
                 while AutoMineEnabled do
                     task.wait(0.2)
-                    
                     if not AutoMineEnabled then break end
                     if not Player.Character then continue end
-                    if not HRP then continue end
                     
                     local tool = Player.Character:FindFirstChildOfClass("Tool")
                     if tool and (tool.Name == "Pickaxe" or tool.Name:lower():find("pick")) then
-                        if tool.Activate then
-                            tool:Activate()
-                        end
+                        if tool.Activate then tool:Activate() end
                     end
                 end
             end)
         else
-            Rayfield:Notify({
-                Title = "Auto-Minar",
-                Content = "Desactivado.",
-                Duration = 2,
-            })
+            Rayfield:Notify({ Title = "Auto-Minar", Content = "Desactivado", Duration = 2 })
         end
     end,
 })
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- PESTAÑA: ARMAS (Tools)
+-- PESTAÑA: ARMAS
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 local ToolsTab = Window:CreateTab("🔪 Armas", 4483362458)
 
-ToolsTab:CreateSection("Selector de Herramientas")
+ToolsTab:CreateSection("Selector")
 
 -- COMBAT KNIFE
 ToolsTab:CreateButton({
@@ -448,19 +314,15 @@ ToolsTab:CreateButton({
         local Backpack = Player:WaitForChild("Backpack")
         local ToolsFolder = Workspace:FindFirstChild("Tools")
         
-        -- Intentar equipar desde backpack primero
+        -- Buscar en backpack
         local knife = Backpack:FindFirstChild("CombatKnife")
         if knife then
             Humanoid:EquipTool(knife)
-            Rayfield:Notify({
-                Title = "Éxito",
-                Content = "Combat Knife equipada!",
-                Duration = 2,
-            })
+            Rayfield:Notify({ Title = "Éxito", Content = "Combat Knife equipada!", Duration = 2 })
             return
         end
         
-        -- Si no está en backpack, buscar en Tools y clonar
+        -- Buscar en Tools y clonar
         if ToolsFolder then
             knife = ToolsFolder:FindFirstChild("CombatKnife")
             if knife and knife:IsA("Tool") then
@@ -468,30 +330,12 @@ ToolsTab:CreateButton({
                 cloned.Parent = Backpack
                 task.wait(0.1)
                 Humanoid:EquipTool(cloned)
-                Rayfield:Notify({
-                    Title = "Éxito",
-                    Content = "Combat Knife obtenida y equipada!",
-                    Duration = 2,
-                })
+                Rayfield:Notify({ Title = "Éxito", Content = "Combat Knife obtenida!", Duration = 2 })
                 return
             end
         end
         
-        -- Verificar si ya está equipada
-        if Player.Character and Player.Character:FindFirstChild("CombatKnife") then
-            Rayfield:Notify({
-                Title = "Info",
-                Content = "Ya tienes la Combat Knife equipada.",
-                Duration = 2,
-            })
-            return
-        end
-        
-        Rayfield:Notify({
-            Title = "Error",
-            Content = "No se encontró Combat Knife.",
-            Duration = 3,
-        })
+        Rayfield:Notify({ Title = "Error", Content = "No se encontró Combat Knife", Duration = 2 })
     end,
 })
 
@@ -502,19 +346,13 @@ ToolsTab:CreateButton({
         local Backpack = Player:WaitForChild("Backpack")
         local ToolsFolder = Workspace:FindFirstChild("Tools")
         
-        -- Intentar equipar desde backpack primero
         local pistol = Backpack:FindFirstChild("Pistol")
         if pistol then
             Humanoid:EquipTool(pistol)
-            Rayfield:Notify({
-                Title = "Éxito",
-                Content = "Pistol equipada!",
-                Duration = 2,
-            })
+            Rayfield:Notify({ Title = "Éxito", Content = "Pistol equipada!", Duration = 2 })
             return
         end
         
-        -- Si no está en backpack, buscar en Tools y clonar
         if ToolsFolder then
             pistol = ToolsFolder:FindFirstChild("Pistol")
             if pistol and pistol:IsA("Tool") then
@@ -522,36 +360,18 @@ ToolsTab:CreateButton({
                 cloned.Parent = Backpack
                 task.wait(0.1)
                 Humanoid:EquipTool(cloned)
-                Rayfield:Notify({
-                    Title = "Éxito",
-                    Content = "Pistol obtenida y equipada!",
-                    Duration = 2,
-                })
+                Rayfield:Notify({ Title = "Éxito", Content = "Pistol obtenida!", Duration = 2 })
                 return
             end
         end
         
-        -- Verificar si ya está equipada
-        if Player.Character and Player.Character:FindFirstChild("Pistol") then
-            Rayfield:Notify({
-                Title = "Info",
-                Content = "Ya tienes la Pistol equipada.",
-                Duration = 2,
-            })
-            return
-        end
-        
-        Rayfield:Notify({
-            Title = "Error",
-            Content = "No se encontró Pistol.",
-            Duration = 3,
-        })
+        Rayfield:Notify({ Title = "Error", Content = "No se encontró Pistol", Duration = 2 })
     end,
 })
 
--- OBTENER TODAS LAS ARMAS
+-- OBTENER TODAS
 ToolsTab:CreateButton({
-    Name = "🎒 Obtener Todas las Armas",
+    Name = "🎒 Obtener Todas las Tools",
     Callback = function()
         local Backpack = Player:WaitForChild("Backpack")
         local ToolsFolder = Workspace:FindFirstChild("Tools")
@@ -560,9 +380,7 @@ ToolsTab:CreateButton({
         if ToolsFolder then
             for _, tool in pairs(ToolsFolder:GetChildren()) do
                 if tool:IsA("Tool") then
-                    -- Verificar si ya la tiene
-                    if not Backpack:FindFirstChild(tool.Name) and 
-                       not (Player.Character and Player.Character:FindFirstChild(tool.Name)) then
+                    if not Backpack:FindFirstChild(tool.Name) and not Player.Character:FindFirstChild(tool.Name) then
                         local cloned = tool:Clone()
                         cloned.Parent = Backpack
                         count = count + 1
@@ -571,27 +389,7 @@ ToolsTab:CreateButton({
             end
         end
         
-        -- Listar herramientas disponibles
-        local toolsList = {}
-        for _, tool in pairs(Backpack:GetChildren()) do
-            if tool:IsA("Tool") then
-                table.insert(toolsList, tool.Name)
-            end
-        end
-        
-        if count > 0 then
-            Rayfield:Notify({
-                Title = "Éxito",
-                Content = "Se obtuvieron " .. count .. " herramientas nuevas!",
-                Duration = 3,
-            })
-        else
-            Rayfield:Notify({
-                Title = "Info",
-                Content = "Ya tienes todas las herramientas disponibles.",
-                Duration = 2,
-            })
-        end
+        Rayfield:Notify({ Title = "Completado", Content = "Se obtuvieron " .. count .. " tools", Duration = 2 })
     end,
 })
 
@@ -601,49 +399,16 @@ ToolsTab:CreateButton({
 
 local InfoTab = Window:CreateTab("ℹ️ Info", 4483362458)
 
-InfoTab:CreateSection("GhostlyHUB")
-
 InfoTab:CreateParagraph({
     Title = "👻 GhostlyHUB v2.0",
-    Content = "Script optimizado para Prison Mining\n\nFunciones:\n• Noclip para atravesar paredes\n• Super Pickaxe con golpes rápidos\n• Auto-Minar y Auto-Vender\n• Selector de Combat Knife y Pistol\n\nPresiona RightShift o Insert para ocultar/mostrar el menú."
+    Content = "Script para PRISON RP\n\nComandos:\n• RightShift / Insert = Mostrar/Ocultar\n\nFunciones:\n✓ Noclip\n✓ Super Pickaxe\n✓ Auto-Vender\n✓ Auto-Minar\n✓ Selector de Armas"
 })
 
-InfoTab:CreateButton({
-    Name = "🌐 Copiar Discord",
-    Callback = function()
-        if setclipboard then
-            setclipboard("https://discord.gg/tuinvite")
-            Rayfield:Notify({
-                Title = "Copiado!",
-                Content = "Link copiado al portapapeles.",
-                Duration = 2,
-            })
-        end
-    end,
-})
-
--- ═══════════════════════════════════════════════════════════════════════════════
--- MANEJO DE RESPawn
--- ═══════════════════════════════════════════════════════════════════════════════
-
+-- Respawn handler
 Player.CharacterAdded:Connect(function(NewCharacter)
     Character = NewCharacter
     Humanoid = NewCharacter:WaitForChild("Humanoid")
     HRP = NewCharacter:WaitForChild("HumanoidRootPart")
-    
-    -- Restaurar noclip si estaba activo
-    if NoclipEnabled and NoclipToggle then
-        task.wait(1)
-        NoclipToggle:Set(true)
-    end
 end)
 
--- Mensaje final
-print("═══════════════════════════════════════════════════")
-print("👻 GHOSTLYHUB v2.0 - Cargado Exitosamente")
-print("═══════════════════════════════════════════════════")
-print("• Noclip: Listo")
-print("• Super Pickaxe: Listo")
-print("• Auto-Sell: Listo")
-print("• Tools Selector: Listo")
-print("═══════════════════════════════════════════════════")
+print("👻 GhostlyHUB cargado!")
