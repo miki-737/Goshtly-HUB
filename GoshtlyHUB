@@ -1,1326 +1,217 @@
--- ═══════════════════════════════════════════════════════════════════════════════
---  👻 GHOSTLY HUB v2.0 - PRISON RP EDITION
---  Mod Menu Profesional con Remotes Reales
---  Compatible con: Delta Executor, KRNL, Synapse X, Fluxus, Codex
--- ═══════════════════════════════════════════════════════════════════════════════
+if game.PlaceId == 81223687051453 then
 
--- Servicios
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-local StarterGui = game:GetService("StarterGui")
-local SoundService = game:GetService("SoundService")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Window = Rayfield:CreateWindow({
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- CONFIGURACIÓN CON REMOTES REALES DEL JUEGO
--- ═══════════════════════════════════════════════════════════════════════════════
+Name = "GhostlyHUB",
 
-local CONFIG = {
-    -- REMOTES REALES ENCONTRADOS EN DEX++
-    REMOTES = {
-        -- Sistema de Venta (Midnight Special)
-        SELL_ORE = "Midnight Special SellOre",  -- Remote para vender minerales
-        
-        -- Sistema de Comida (Estructura: Tasks > Cook > Food)
-        FOOD_SYSTEM = {
-            FOLDER = "Tasks",
-            SUBFOLDER = "Cook",
-            EVENT = "Food"
-        },
-    },
-    
-    -- COLORES TEMA GHOSTLY (Morado Fantasma Profesional)
-    COLORS = {
-        BACKGROUND = Color3.fromRGB(15, 8, 28),
-        ACCENT = Color3.fromRGB(147, 51, 255),
-        ACCENT_GLOW = Color3.fromRGB(180, 100, 255),
-        ACCENT_DARK = Color3.fromRGB(100, 30, 180),
-        SECONDARY = Color3.fromRGB(25, 12, 45),
-        TEXT = Color3.fromRGB(255, 255, 255),
-        TEXT_DIM = Color3.fromRGB(180, 180, 200),
-        ON = Color3.fromRGB(0, 255, 120),
-        OFF = Color3.fromRGB(255, 60, 80),
-        BUTTON_BG = Color3.fromRGB(35, 18, 65),
-        WARNING = Color3.fromRGB(255, 180, 0),
-        INFO = Color3.fromRGB(0, 180, 255)
-    },
-    
-    -- CONFIGURACIÓN DE ANIMACIONES
-    ANIMATION = {
-        SPEED = 0.35,
-        ELASTIC = Enum.EasingStyle.Elastic,
-        QUART = Enum.EasingStyle.Quart,
-        BACK = Enum.EasingStyle.Back
-    }
-}
+LoadingTitle = "GhostlyHUB",
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- VARIABLES GLOBALES DEL HUB
--- ═══════════════════════════════════════════════════════════════════════════════
+LoadingSubtitle = "Sistema privado",
 
-local GhostlyHub = {
-    GUI = nil,
-    MainFrame = nil,
-    EnabledFeatures = {
-        NoHunger = false,
-        NoThirst = false,
-        InstantMine = false,
-        Noclip = false,
-        AutoSell = false,
-        AutoCook = false,
-        InfiniteStamina = false,
-        GodMode = false,
-        FastWalk = false,
-        Invisibility = false
-    },
-    Connections = {},
-    Toggles = {},
-    RainbowConnection = nil,
-    PulseConnection = nil,
-    StatsCache = {}
-}
+ConfigurationSaving = {
+    Enabled = true,
+    FolderName = "GhostlyHUB",
+    FileName = "Config"
+},
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- FUNCIONES UTILITARIAS AVANZADAS
--- ═══════════════════════════════════════════════════════════════════════════════
+Discord = {
+    Enabled = false
+},
 
--- Sistema de sonidos profesional
-local SoundSystem = {
-    Sounds = {
-        ENABLE = "rbxassetid://9113083740",
-        DISABLE = "rbxassetid://9113083984",
-        SUCCESS = "rbxassetid://9113084150",
-        ERROR = "rbxassetid://9113084310",
-        CLICK = "rbxassetid://9113084470",
-        HOVER = "rbxassetid://9113084630",
-        SELL = "rbxassetid://9113084790"
-    },
-    
-    Play = function(soundName, volume)
-        local soundId = SoundSystem.Sounds[soundName]
-        if not soundId then return end
-        
-        local sound = Instance.new("Sound")
-        sound.SoundId = soundId
-        sound.Volume = volume or 0.4
-        sound.Parent = SoundService
-        sound:Play()
-        
-        game:GetService("Debris"):AddItem(sound, 2)
-    end
-}
+KeySystem = false
 
--- Sistema de notificaciones flotantes
-local NotificationSystem = {
-    ActiveNotifications = {},
-    
-    Show = function(title, message, notificationType, duration)
-        local notifType = notificationType or "INFO"
-        local colors = {
-            SUCCESS = CONFIG.COLORS.ON,
-            ERROR = CONFIG.COLORS.OFF,
-            WARNING = CONFIG.COLORS.WARNING,
-            INFO = CONFIG.COLORS.INFO
-        }
-        
-        local notif = Instance.new("ScreenGui")
-        notif.Name = "GhostlyNotification"
-        notif.ResetOnSpawn = false
-        
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 320, 0, 80)
-        frame.Position = UDim2.new(1, 20, 0, 20 + (#NotificationSystem.ActiveNotifications * 90))
-        frame.BackgroundColor3 = CONFIG.COLORS.BACKGROUND
-        frame.BorderSizePixel = 0
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 12)
-        corner.Parent = frame
-        
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = colors[notifType] or CONFIG.COLORS.ACCENT
-        stroke.Thickness = 2
-        stroke.Parent = frame
-        
-        local icon = Instance.new("TextLabel")
-        icon.Size = UDim2.new(0, 40, 0, 40)
-        icon.Position = UDim2.new(0, 15, 0, 20)
-        icon.BackgroundTransparency = 1
-        icon.Text = notifType == "SUCCESS" and "✓" or notifType == "ERROR" and "✕" or notifType == "WARNING" and "!" or "ℹ"
-        icon.TextColor3 = colors[notifType] or CONFIG.COLORS.ACCENT
-        icon.TextSize = 30
-        icon.Font = Enum.Font.GothamBold
-        icon.Parent = frame
-        
-        local titleLabel = Instance.new("TextLabel")
-        titleLabel.Size = UDim2.new(1, -70, 0, 25)
-        titleLabel.Position = UDim2.new(0, 60, 0, 10)
-        titleLabel.BackgroundTransparency = 1
-        titleLabel.Text = title
-        titleLabel.TextColor3 = CONFIG.COLORS.TEXT
-        titleLabel.TextSize = 16
-        titleLabel.Font = Enum.Font.GothamBold
-        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        titleLabel.Parent = frame
-        
-        local msgLabel = Instance.new("TextLabel")
-        msgLabel.Size = UDim2.new(1, -70, 0, 40)
-        msgLabel.Position = UDim2.new(0, 60, 0, 35)
-        msgLabel.BackgroundTransparency = 1
-        msgLabel.Text = message
-        msgLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-        msgLabel.TextSize = 12
-        msgLabel.Font = Enum.Font.Gotham
-        msgLabel.TextXAlignment = Enum.TextXAlignment.Left
-        msgLabel.TextWrapped = true
-        msgLabel.Parent = frame
-        
-        notif.Parent = game:GetService("CoreGui") or LocalPlayer.PlayerGui
-        
-        -- Animación de entrada
-        TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
-            Position = UDim2.new(1, -340, 0, frame.Position.Y.Offset)
-        }):Play()
-        
-        table.insert(NotificationSystem.ActiveNotifications, notif)
-        
-        -- Auto-destruir
-        task.delay(duration or 3, function()
-            TweenService:Create(frame, TweenInfo.new(0.3), {
-                Position = UDim2.new(1, 20, 0, frame.Position.Y.Offset)
-            }):Play()
-            task.wait(0.3)
-            notif:Destroy()
-            
-            -- Reorganizar notificaciones restantes
-            for i, n in ipairs(NotificationSystem.ActiveNotifications) do
-                if n == notif then
-                    table.remove(NotificationSystem.ActiveNotifications, i)
-                    break
-                end
-            end
-            
-            -- Actualizar posiciones
-            for i, activeNotif in ipairs(NotificationSystem.ActiveNotifications) do
-                local f = activeNotif:FindFirstChildOfClass("Frame")
-                if f then
-                    TweenService:Create(f, TweenInfo.new(0.3), {
-                        Position = UDim2.new(1, -340, 0, 20 + ((i-1) * 90))
-                    }):Play()
-                end
-            end
-        end)
-    end
-}
+})
 
--- Función tween simplificada
-local function Tween(object, properties, duration, style, direction)
-    return TweenService:Create(object, TweenInfo.new(
-        duration or CONFIG.ANIMATION.SPEED,
-        style or CONFIG.ANIMATION.QUART,
-        direction or Enum.EasingDirection.Out
-    ), properties)
+
+-- TAB PRINCIPAL
+
+local Main = Window:CreateTab("🏠 Principal", 4483362458)
+
+
+local noclip = false
+
+
+Main:CreateToggle({
+
+Name = "Noclip",
+
+CurrentValue = false,
+
+Callback = function(Value)
+
+noclip = Value
+
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- SISTEMA DE EFECTOS VISUALES AVANZADOS
--- ═══════════════════════════════════════════════════════════════════════════════
+})
 
-local VisualEffects = {
-    -- Efecto Rainbow/Glow animado
-    StartRainbow = function(uiElement, speed)
-        if GhostlyHub.RainbowConnection then
-            GhostlyHub.RainbowConnection:Disconnect()
-        end
-        
-        local hue = 0
-        GhostlyHub.RainbowConnection = RunService.RenderStepped:Connect(function(deltaTime)
-            hue = (hue + deltaTime * (speed or 0.5)) % 1
-            local color = Color3.fromHSV(hue, 0.8, 1)
-            if uiElement and uiElement.Parent then
-                pcall(function()
-                    uiElement.BorderColor3 = color
-                end)
-            else
-                if GhostlyHub.RainbowConnection then
-                    GhostlyHub.RainbowConnection:Disconnect()
-                end
-            end
-        end)
-    end,
-    
-    -- Efecto de pulso/brillo
-    StartPulse = function(uiElement, minTransparency, maxTransparency, speed)
-        local increasing = true
-        local current = minTransparency or 0.3
-        
-        GhostlyHub.PulseConnection = RunService.Heartbeat:Connect(function(deltaTime)
-            if not uiElement or not uiElement.Parent then
-                if GhostlyHub.PulseConnection then
-                    GhostlyHub.PulseConnection:Disconnect()
-                end
-                return
-            end
-            
-            local change = deltaTime * (speed or 1)
-            if increasing then
-                current = current + change
-                if current >= (maxTransparency or 0.7) then
-                    increasing = false
-                end
-            else
-                current = current - change
-                if current <= (minTransparency or 0.3) then
-                    increasing = true
-                end
-            end
-            
-            pcall(function()
-                if uiElement:IsA("UIStroke") then
-                    uiElement.Transparency = current
-                elseif uiElement:IsA("ImageLabel") then
-                    uiElement.ImageTransparency = current
-                end
-            end)
-        end)
-    end,
-    
-    -- Efecto de partículas alrededor del cursor
-    CursorParticles = function()
-        local mouse = LocalPlayer:GetMouse()
-        local lastPos = Vector2.new(mouse.X, mouse.Y)
-        
-        RunService.RenderStepped:Connect(function()
-            local currentPos = Vector2.new(mouse.X, mouse.Y)
-            if (currentPos - lastPos).Magnitude > 10 then
-                local particle = Instance.new("Frame")
-                particle.Size = UDim2.new(0, 6, 0, 6)
-                particle.Position = UDim2.new(0, mouse.X - 3, 0, mouse.Y - 3)
-                particle.BackgroundColor3 = CONFIG.COLORS.ACCENT
-                particle.BorderSizePixel = 0
-                particle.Parent = GhostlyHub.GUI
-                
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(1, 0)
-                corner.Parent = particle
-                
-                Tween(particle, {
-                    Size = UDim2.new(0, 0, 0, 0),
-                    BackgroundTransparency = 1
-                }, 0.5):Play()
-                
-                game:GetService("Debris"):AddItem(particle, 0.5)
-                lastPos = currentPos
-            end
-        end)
-    end
-}
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- FUNCIONES DE HACKS/FLAGS CON REMOTES REALES
--- ═══════════════════════════════════════════════════════════════════════════════
+game:GetService("RunService").Stepped:Connect(function()
 
-local Hacks = {
-    -- 1. SISTEMA DE VENTA AUTOMÁTICA (Midnight Special SellOre)
-    SellSystem = {
-        Remote = nil,
-        
-        Initialize = function()
-            -- Buscar el remote de venta
-            local success, remote = pcall(function()
-                return ReplicatedStorage:FindFirstChild("Midnight Special SellOre", true)
-                    or ReplicatedStorage:WaitForChild("Midnight Special SellOre", 5)
-            end)
-            
-            if success and remote then
-                Hacks.SellSystem.Remote = remote
-                NotificationSystem.Show("Sistema de Venta", "Remote conectado: Midnight Special SellOre", "SUCCESS", 3)
-                return true
-            else
-                -- Buscar alternativas
-                for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-                    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                        if obj.Name:lower():find("sell") and obj.Name:lower():find("ore") then
-                            Hacks.SellSystem.Remote = obj
-                            NotificationSystem.Show("Sistema de Venta", "Remote alternativo encontrado: " .. obj.Name, "WARNING", 3)
-                            return true
-                        end
-                    end
-                end
-            end
-            
-            NotificationSystem.Show("Sistema de Venta", "No se encontró el remote de venta", "ERROR", 3)
-            return false
-        end,
-        
-        SellAll = function()
-            if not Hacks.SellSystem.Remote then
-                if not Hacks.SellSystem.Initialize() then return false end
-            end
-            
-            local success, result = pcall(function()
-                -- Intentar diferentes métodos de fire
-                if Hacks.SellSystem.Remote:IsA("RemoteEvent") then
-                    Hacks.SellSystem.Remote:FireServer("SellAll")
-                    Hacks.SellSystem.Remote:FireServer()
-                elseif Hacks.SellSystem.Remote:IsA("RemoteFunction") then
-                    Hacks.SellSystem.Remote:InvokeServer("SellAll")
-                end
-            end)
-            
-            if success then
-                SoundSystem.Play("SELL", 0.6)
-                NotificationSystem.Show("Venta Exitosa", "Todos los minerales vendidos", "SUCCESS", 2)
-                return true
-            else
-                NotificationSystem.Show("Error de Venta", tostring(result), "ERROR", 3)
-                return false
-            end
-        end,
-        
-        AutoSell = function(enabled)
-            if enabled then
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.AutoSell do
-                        -- Verificar si está cerca del vendedor
-                        local nearSeller = false
-                        local sellerPosition = nil
-                        
-                        pcall(function()
-                            for _, obj in ipairs(Workspace:GetDescendants()) do
-                                if obj:IsA("Model") and (obj.Name:lower():find("seller") 
-                                    or obj.Name:lower():find("merchant")
-                                    or obj.Name:lower():find("midnight")
-                                    or obj.Name:lower():find("shop")) then
-                                    local part = obj:FindFirstChild("HumanoidRootPart") 
-                                        or obj:FindFirstChild("Head")
-                                        or obj:FindFirstChildWhichIsA("BasePart")
-                                    
-                                    if part and HumanoidRootPart then
-                                        local dist = (part.Position - HumanoidRootPart.Position).Magnitude
-                                        if dist < 20 then
-                                            nearSeller = true
-                                            sellerPosition = part.Position
-                                            break
-                                        end
-                                    end
-                                end
-                            end
-                        end)
-                        
-                        if nearSeller then
-                            Hacks.SellSystem.SellAll()
-                        end
-                        
-                        task.wait(2)
-                    end
-                end)
-            end
-        end
-    },
-    
-    -- 2. SISTEMA DE COMIDA (Tasks > Cook > Food)
-    FoodSystem = {
-        Remote = nil,
-        FolderPath = nil,
-        
-        Initialize = function()
-            -- Buscar la estructura Tasks > Cook > Food
-            local tasks = ReplicatedStorage:FindFirstChild("Tasks")
-                or Workspace:FindFirstChild("Tasks")
-            
-            if tasks then
-                local cook = tasks:FindFirstChild("Cook")
-                if cook then
-                    local food = cook:FindFirstChild("Food")
-                    if food then
-                        Hacks.FoodSystem.FolderPath = food
-                        
-                        -- Buscar remotes dentro
-                        for _, obj in ipairs(food:GetDescendants()) do
-                            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                                Hacks.FoodSystem.Remote = obj
-                                NotificationSystem.Show("Sistema de Comida", 
-                                    "Conectado: Tasks > Cook > Food > " .. obj.Name, "SUCCESS", 3)
-                                return true
-                            end
-                        end
-                    end
-                end
-            end
-            
-            -- Búsqueda general de remotes de comida
-            for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-                if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                    if obj.Name:lower():find("food") or obj.Name:lower():find("hunger") 
-                        or obj.Name:lower():find("eat") then
-                        Hacks.FoodSystem.Remote = obj
-                        NotificationSystem.Show("Sistema de Comida", 
-                            "Remote encontrado: " .. obj.Name, "WARNING", 3)
-                        return true
-                    end
-                end
-            end
-            
-            return false
-        end,
-        
-        NoHunger = function(enabled)
-            if enabled then
-                -- Método 1: Bloquear remote de disminución
-                -- Método 2: Mantener valores al máximo
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.NoHunger do
-                        pcall(function()
-                            -- Buscar valores de hambre en el jugador
-                            local stats = LocalPlayer:FindFirstChild("Stats")
-                                or LocalPlayer:FindFirstChild("Data")
-                                or LocalPlayer:FindFirstChild("PlayerData")
-                            
-                            if stats then
-                                local hunger = stats:FindFirstChild("Hunger") 
-                                    or stats:FindFirstChild("Food")
-                                    or stats:FindFirstChild("Hambre")
-                                
-                                if hunger and hunger:IsA("ValueBase") then
-                                    hunger.Value = hunger.MaxValue or 100
-                                end
-                            end
-                            
-                            -- También buscar en character
-                            if Character then
-                                local charHunger = Character:FindFirstChild("Hunger")
-                                    or Character:FindFirstChild("Food")
-                                if charHunger and charHunger:IsA("ValueBase") then
-                                    charHunger.Value = 100
-                                end
-                            end
-                        end)
-                        task.wait(0.5)
-                    end
-                end)
-                
-                NotificationSystem.Show("No Hunger", "Tu comida ya no bajará", "SUCCESS", 2)
-            end
-        end,
-        
-        NoThirst = function(enabled)
-            if enabled then
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.NoThirst do
-                        pcall(function()
-                            local stats = LocalPlayer:FindFirstChild("Stats")
-                                or LocalPlayer:FindFirstChild("Data")
-                            
-                            if stats then
-                                local thirst = stats:FindFirstChild("Thirst") 
-                                    or stats:FindFirstChild("Water")
-                                    or stats:FindFirstChild("Sed")
-                                
-                                if thirst and thirst:IsA("ValueBase") then
-                                    thirst.Value = thirst.MaxValue or 100
-                                end
-                            end
-                        end)
-                        task.wait(0.5)
-                    end
-                end)
-                
-                NotificationSystem.Show("No Thirst", "Tu sed ya no bajará", "SUCCESS", 2)
-            end
-        end,
-        
-        AutoCook = function(enabled)
-            if enabled then
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.AutoCook do
-                        pcall(function()
-                            if Hacks.FoodSystem.Remote then
-                                -- Intentar cocinar automáticamente
-                                Hacks.FoodSystem.Remote:FireServer("Cook", "BestFood")
-                            end
-                        end)
-                        task.wait(5)
-                    end
-                end)
-            end
-        end
-    },
-    
-    -- 3. SISTEMA DE MINERÍA INSTANTÁNEA
-    MiningSystem = {
-        Remote = nil,
-        
-        Initialize = function()
-            -- Buscar remote de minería
-            for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-                if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                    if obj.Name:lower():find("mine") or obj.Name:lower():find("pick") 
-                        or obj.Name:lower():find("rock") or obj.Name:lower():find("ore") then
-                        Hacks.MiningSystem.Remote = obj
-                        return true
-                    end
-                end
-            end
-            return false
-        end,
-        
-        InstantMine = function(enabled)
-            if enabled then
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.InstantMine do
-                        pcall(function()
-                            -- Método 1: Auto-click en rocas cercanas
-                            local tool = Character:FindFirstChildOfClass("Tool")
-                            if tool then
-                                local handle = tool:FindFirstChild("Handle")
-                                if handle then
-                                    -- Activar remote si existe
-                                    if Hacks.MiningSystem.Remote then
-                                        for _ = 1, 5 do -- 5 golpes rápidos
-                                            Hacks.MiningSystem.Remote:FireServer()
-                                            task.wait(0.05)
-                                        end
-                                    end
-                                end
-                            end
-                            
-                            -- Método 2: Animación ultra rápida
-                            local animator = Humanoid:FindFirstChild("Animator")
-                            if animator then
-                                for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                                    track:AdjustSpeed(20) -- 20x velocidad
-                                end
-                            end
-                        end)
-                        task.wait(0.1)
-                    end
-                end)
-                
-                NotificationSystem.Show("Instant Mine", "Picando a velocidad máxima", "SUCCESS", 2)
-            else
-                -- Restaurar velocidad de animaciones
-                pcall(function()
-                    local animator = Humanoid:FindFirstChild("Animator")
-                    if animator then
-                        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                            track:AdjustSpeed(1)
-                        end
-                    end
-                end)
-            end
-        end
-    },
-    
-    -- 4. NOCLIP MEJORADO
-    NoclipSystem = {
-        Connection = nil,
-        OriginalCollisions = {},
-        
-        Toggle = function(enabled)
-            if enabled then
-                GhostlyHub.EnabledFeatures.Noclip = true
-                
-                -- Guardar estado original
-                Hacks.NoclipSystem.OriginalCollisions = {}
-                
-                Hacks.NoclipSystem.Connection = RunService.Stepped:Connect(function()
-                    if Character and GhostlyHub.EnabledFeatures.Noclip then
-                        for _, part in ipairs(Character:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                if not Hacks.NoclipSystem.OriginalCollisions[part] then
-                                    Hacks.NoclipSystem.OriginalCollisions[part] = part.CanCollide
-                                end
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end)
-                
-                NotificationSystem.Show("Noclip", "Atravesando paredes (Tecla V)", "SUCCESS", 2)
-            else
-                GhostlyHub.EnabledFeatures.Noclip = false
-                if Hacks.NoclipSystem.Connection then
-                    Hacks.NoclipSystem.Connection:Disconnect()
-                    Hacks.NoclipSystem.Connection = nil
-                end
-                
-                -- Restaurar colisiones
-                for part, original in pairs(Hacks.NoclipSystem.OriginalCollisions) do
-                    if part and part.Parent then
-                        part.CanCollide = original
-                    end
-                end
-                Hacks.NoclipSystem.OriginalCollisions = {}
-                
-                NotificationSystem.Show("Noclip", "Colisiones restauradas", "INFO", 2)
-            end
-        end
-    },
-    
-    -- 5. EXTRAS PROFESIONALES
-    Extras = {
-        InfiniteStamina = function(enabled)
-            if enabled then
-                spawn(function()
-                    while GhostlyHub.EnabledFeatures.InfiniteStamina do
-                        pcall(function()
-                            local stamina = LocalPlayer:FindFirstChild("Stamina", true)
-                                or Character:FindFirstChild("Stamina", true)
-                            if stamina and stamina:IsA("ValueBase") then
-                                stamina.Value = stamina.MaxValue or 100
-                            end
-                        end)
-                        task.wait(0.2)
-                    end
-                end)
-            end
-        end,
-        
-        FastWalk = function(enabled)
-            if enabled then
-                pcall(function()
-                    Humanoid.WalkSpeed = 100
-                end)
-            else
-                pcall(function()
-                    Humanoid.WalkSpeed = 16
-                end)
-            end
-        end,
-        
-        GodMode = function(enabled)
-            -- Prevenir daño
-            if enabled then
-                local conn = Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-                    if Humanoid.Health < Humanoid.MaxHealth then
-                        Humanoid.Health = Humanoid.MaxHealth
-                    end
-                end)
-                table.insert(GhostlyHub.Connections, conn)
-            end
-        end
-    }
-}
+if noclip then
 
--- Tecla V para noclip rápido
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed and input.KeyCode == Enum.KeyCode.V then
-        Hacks.NoclipSystem.Toggle(not GhostlyHub.EnabledFeatures.Noclip)
-        
-        -- Actualizar toggle visual si existe
-        if GhostlyHub.Toggles["Noclip"] then
-            GhostlyHub.Toggles["Noclip"](GhostlyHub.EnabledFeatures.Noclip)
-        end
-    end
+local char = game.Players.LocalPlayer.Character
+
+if char then
+
+for _,part in pairs(char:GetDescendants()) do
+
+if part:IsA("BasePart") then
+
+part.CanCollide = false
+
+end
+
+end
+
+end
+
+end
+
 end)
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- CREACIÓN DE LA INTERFAZ PROFESIONAL
--- ═══════════════════════════════════════════════════════════════════════════════
 
-local UI = {}
 
-function UI.CreateMainWindow()
-    -- ScreenGui principal
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "GhostlyHubV2"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-    ScreenGui.Parent = game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui")
-    
-    GhostlyHub.GUI = ScreenGui
-    
-    -- Frame principal con sombra
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 450, 0, 550)
-    MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
-    MainFrame.BackgroundColor3 = CONFIG.COLORS.BACKGROUND
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
-    
-    -- Esquinas redondeadas
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 20)
-    Corner.Parent = MainFrame
-    
-    -- Sombra exterior (Glow)
-    local Shadow = Instance.new("ImageLabel")
-    Shadow.Name = "Shadow"
-    Shadow.Size = UDim2.new(1, 60, 1, 60)
-    Shadow.Position = UDim2.new(0, -30, 0, -30)
-    Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxassetid://5587864443"
-    Shadow.ImageColor3 = CONFIG.COLORS.ACCENT
-    Shadow.ImageTransparency = 0.8
-    Shadow.ZIndex = 0
-    Shadow.Parent = MainFrame
-    
-    -- Barra de título superior
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Name = "TitleBar"
-    TitleBar.Size = UDim2.new(1, 0, 0, 70)
-    TitleBar.BackgroundColor3 = CONFIG.COLORS.SECONDARY
-    TitleBar.BorderSizePixel = 0
-    TitleBar.ZIndex = 2
-    TitleBar.Parent = MainFrame
-    
-    local TitleCorner = Instance.new("UICorner")
-    TitleCorner.CornerRadius = UDim.new(0, 20)
-    TitleCorner.Parent = TitleBar
-    
-    -- Fix para esquinas inferiores de la barra
-    local TitleFix = Instance.new("Frame")
-    TitleFix.Size = UDim2.new(1, 0, 0, 20)
-    TitleFix.Position = UDim2.new(0, 0, 1, -20)
-    TitleFix.BackgroundColor3 = CONFIG.COLORS.SECONDARY
-    TitleFix.BorderSizePixel = 0
-    TitleFix.ZIndex = 2
-    TitleFix.Parent = TitleBar
-    
-    -- Logo animado
-    local LogoContainer = Instance.new("Frame")
-    LogoContainer.Size = UDim2.new(0, 50, 0, 50)
-    LogoContainer.Position = UDim2.new(0, 15, 0, 10)
-    LogoContainer.BackgroundColor3 = CONFIG.COLORS.ACCENT
-    LogoContainer.BorderSizePixel = 0
-    LogoContainer.ZIndex = 3
-    LogoContainer.Parent = TitleBar
-    
-    local LogoCorner = Instance.new("UICorner")
-    LogoCorner.CornerRadius = UDim.new(0, 12)
-    LogoCorner.Parent = LogoContainer
-    
-    local LogoText = Instance.new("TextLabel")
-    LogoText.Size = UDim2.new(1, 0, 1, 0)
-    LogoText.BackgroundTransparency = 1
-    LogoText.Text = "👻"
-    LogoText.TextSize = 30
-    LogoText.Font = Enum.Font.GothamBold
-    LogoText.ZIndex = 4
-    LogoText.Parent = LogoContainer
-    
-    -- Animación del logo
-    spawn(function()
-        while LogoContainer and LogoContainer.Parent do
-            Tween(LogoContainer, {Rotation = 10}, 0.5, Enum.EasingStyle.Elastic):Play()
-            task.wait(0.5)
-            Tween(LogoContainer, {Rotation = -10}, 0.5, Enum.EasingStyle.Elastic):Play()
-            task.wait(0.5)
-        end
-    end)
-    
-    -- Título principal
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Size = UDim2.new(0, 250, 0, 35)
-    TitleText.Position = UDim2.new(0, 75, 0, 10)
-    TitleText.BackgroundTransparency = 1
-    TitleText.Text = "GHOSTLY HUB"
-    TitleText.TextColor3 = CONFIG.COLORS.TEXT
-    TitleText.TextSize = 28
-    TitleText.Font = Enum.Font.GothamBlack
-    TitleText.TextXAlignment = Enum.TextXAlignment.Left
-    TitleText.ZIndex = 3
-    TitleText.Parent = TitleBar
-    
-    -- Subtítulo
-    local Subtitle = Instance.new("TextLabel")
-    Subtitle.Size = UDim2.new(0, 250, 0, 20)
-    Subtitle.Position = UDim2.new(0, 75, 0, 42)
-    Subtitle.BackgroundTransparency = 1
-    Subtitle.Text = "PRISON RP • PREMIUM"
-    Subtitle.TextColor3 = CONFIG.COLORS.ACCENT
-    Subtitle.TextSize = 12
-    Subtitle.Font = Enum.Font.GothamBold
-    Subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    Subtitle.ZIndex = 3
-    Subtitle.Parent = TitleBar
-    
-    -- Botones de control
-    local MinimizeBtn = UI.CreateIconButton(TitleBar, "−", UDim2.new(1, -95, 0, 15), 
-        CONFIG.COLORS.BUTTON_BG, 35)
-    local CloseBtn = UI.CreateIconButton(TitleBar, "✕", UDim2.new(1, -50, 0, 15), 
-        CONFIG.COLORS.OFF, 35)
-    
-    -- Contenedor de pestañas
-    local TabContainer = Instance.new("Frame")
-    TabContainer.Name = "TabContainer"
-    TabContainer.Size = UDim2.new(0, 100, 1, -70)
-    TabContainer.Position = UDim2.new(0, 0, 0, 70)
-    TabContainer.BackgroundColor3 = Color3.fromRGB(20, 10, 40)
-    TabContainer.BorderSizePixel = 0
-    TabContainer.ZIndex = 2
-    TabContainer.Parent = MainFrame
-    
-    local TabCorner = Instance.new("UICorner")
-    TabCorner.CornerRadius = UDim.new(0, 0)
-    TabCorner.Parent = TabContainer
-    
-    -- Contenido principal (Scroll)
-    local ContentFrame = Instance.new("ScrollingFrame")
-    ContentFrame.Name = "ContentFrame"
-    ContentFrame.Size = UDim2.new(1, -120, 1, -90)
-    ContentFrame.Position = UDim2.new(0, 110, 0, 80)
-    ContentFrame.BackgroundTransparency = 1
-    ContentFrame.BorderSizePixel = 0
-    ContentFrame.ScrollBarThickness = 4
-    ContentFrame.ScrollBarImageColor3 = CONFIG.COLORS.ACCENT
-    ContentFrame.ZIndex = 2
-    ContentFrame.Parent = MainFrame
-    
-    local UIList = Instance.new("UIListLayout")
-    UIList.Padding = UDim.new(0, 12)
-    UIList.SortOrder = Enum.SortOrder.LayoutOrder
-    UIList.Parent = ContentFrame
-    
-    -- Guardar referencias
-    GhostlyHub.MainFrame = MainFrame
-    
-    -- Eventos de botones
-    CloseBtn.MouseButton1Click:Connect(function()
-        SoundSystem.Play("DISABLE", 0.4)
-        Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3):Play()
-        task.wait(0.3)
-        ScreenGui:Destroy()
-    end)
-    
-    local minimized = false
-    MinimizeBtn.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        if minimized then
-            Tween(ContentFrame, {Size = UDim2.new(1, -120, 0, 0)}, 0.3):Play()
-            Tween(TabContainer, {Size = UDim2.new(0, 100, 0, 0)}, 0.3):Play()
-            MinimizeBtn.Text = "+"
-        else
-            Tween(ContentFrame, {Size = UDim2.new(1, -120, 1, -90)}, 0.3):Play()
-            Tween(TabContainer, {Size = UDim2.new(0, 100, 1, -70)}, 0.3):Play()
-            MinimizeBtn.Text = "−"
-        end
-        SoundSystem.Play("CLICK", 0.3)
-    end)
-    
-    -- Tecla Insert para mostrar/ocultar
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if not gameProcessed and input.KeyCode == Enum.KeyCode.Insert then
-            ScreenGui.Enabled = not ScreenGui.Enabled
-        end
-    end)
-    
-    -- Animación de entrada
-    MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    Tween(MainFrame, {Size = UDim2.new(0, 450, 0, 550)}, 0.6, CONFIG.ANIMATION.BACK):Play()
-    
-    -- Iniciar efectos visuales
-    VisualEffects.StartRainbow(MainFrame, 0.3)
-    VisualEffects.CursorParticles()
-    
-    return ContentFrame, TabContainer
+-- MINERIA
+
+local Mining = Window:CreateTab("⛏️ Minería",4483362458)
+
+
+
+Mining:CreateButton({
+
+Name = "Equipar Pickaxe",
+
+Callback = function()
+
+local tool = game.ReplicatedStorage.Tools:FindFirstChild("Pickaxe")
+
+if tool then
+
+tool:Clone().Parent =
+game.Players.LocalPlayer.Backpack
+
 end
 
--- Función para crear botón con icono
-function UI.CreateIconButton(parent, text, position, color, size)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, size or 35, 0, size or 35)
-    btn.Position = position
-    btn.BackgroundColor3 = color
-    btn.Text = text
-    btn.TextColor3 = CONFIG.COLORS.TEXT
-    btn.TextSize = 20
-    btn.Font = Enum.Font.GothamBold
-    btn.ZIndex = 3
-    btn.Parent = parent
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    
-    -- Hover
-    btn.MouseEnter:Connect(function()
-        Tween(btn, {BackgroundColor3 = color:Lerp(Color3.new(1,1,1), 0.2)}, 0.2):Play()
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        Tween(btn, {BackgroundColor3 = color}, 0.2):Play()
-    end)
-    
-    return btn
 end
 
--- Crear Toggle Switch moderno
-function UI.CreateToggle(parent, name, description, callback, icon)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Name = name .. "Toggle"
-    ToggleFrame.Size = UDim2.new(1, -10, 0, 85)
-    ToggleFrame.BackgroundColor3 = CONFIG.COLORS.BUTTON_BG
-    ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.Parent = parent
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 15)
-    Corner.Parent = ToggleFrame
-    
-    -- Borde con gradiente
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = CONFIG.COLORS.ACCENT
-    Stroke.Thickness = 2
-    Stroke.Transparency = 0.6
-    Stroke.Parent = ToggleFrame
-    
-    -- Icono
-    local IconLabel = Instance.new("TextLabel")
-    IconLabel.Size = UDim2.new(0, 40, 0, 40)
-    IconLabel.Position = UDim2.new(0, 15, 0, 22)
-    IconLabel.BackgroundColor3 = CONFIG.COLORS.SECONDARY
-    IconLabel.Text = icon or "⚡"
-    IconLabel.TextSize = 24
-    IconLabel.Font = Enum.Font.GothamBold
-    IconLabel.Parent = ToggleFrame
-    
-    local IconCorner = Instance.new("UICorner")
-    IconCorner.CornerRadius = UDim.new(0, 10)
-    IconCorner.Parent = IconLabel
-    
-    -- Nombre
-    local NameLabel = Instance.new("TextLabel")
-    NameLabel.Size = UDim2.new(1, -200, 0, 25)
-    NameLabel.Position = UDim2.new(0, 65, 0, 15)
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Text = name
-    NameLabel.TextColor3 = CONFIG.COLORS.TEXT
-    NameLabel.TextSize = 18
-    NameLabel.Font = Enum.Font.GothamBold
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NameLabel.Parent = ToggleFrame
-    
-    -- Descripción
-    local DescLabel = Instance.new("TextLabel")
-    DescLabel.Size = UDim2.new(1, -200, 0, 35)
-    DescLabel.Position = UDim2.new(0, 65, 0, 42)
-    DescLabel.BackgroundTransparency = 1
-    DescLabel.Text = description
-    DescLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-    DescLabel.TextSize = 11
-    DescLabel.Font = Enum.Font.Gotham
-    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
-    DescLabel.TextWrapped = true
-    DescLabel.Parent = ToggleFrame
-    
-    -- Switch moderno
-    local SwitchFrame = Instance.new("Frame")
-    SwitchFrame.Size = UDim2.new(0, 70, 0, 35)
-    SwitchFrame.Position = UDim2.new(1, -85, 0.5, -17)
-    SwitchFrame.BackgroundColor3 = CONFIG.COLORS.OFF
-    SwitchFrame.BorderSizePixel = 0
-    SwitchFrame.Parent = ToggleFrame
-    
-    local SwitchCorner = Instance.new("UICorner")
-    SwitchCorner.CornerRadius = UDim.new(1, 0)
-    SwitchCorner.Parent = SwitchFrame
-    
-    -- Círculo del switch
-    local SwitchCircle = Instance.new("Frame")
-    SwitchCircle.Size = UDim2.new(0, 28, 0, 28)
-    SwitchCircle.Position = UDim2.new(0, 3, 0.5, -14)
-    SwitchCircle.BackgroundColor3 = Color3.new(1, 1, 1)
-    SwitchCircle.BorderSizePixel = 0
-    SwitchCircle.Parent = SwitchFrame
-    
-    local CircleCorner = Instance.new("UICorner")
-    CircleCorner.CornerRadius = UDim.new(1, 0)
-    CircleCorner.Parent = SwitchCircle
-    
-    -- Texto ON/OFF
-    local StatusText = Instance.new("TextLabel")
-    StatusText.Size = UDim2.new(0, 30, 0, 20)
-    StatusText.Position = UDim2.new(0, 35, 0.5, -10)
-    StatusText.BackgroundTransparency = 1
-    StatusText.Text = "OFF"
-    StatusText.TextColor3 = CONFIG.COLORS.TEXT
-    StatusText.TextSize = 12
-    StatusText.Font = Enum.Font.GothamBold
-    StatusText.Parent = SwitchFrame
-    
-    -- Click area invisible
-    local ClickArea = Instance.new("TextButton")
-    ClickArea.Size = UDim2.new(1, 0, 1, 0)
-    ClickArea.BackgroundTransparency = 1
-    ClickArea.Text = ""
-    ClickArea.Parent = ToggleFrame
-    
-    local isOn = false
-    
-    local function UpdateToggle(state)
-        isOn = state
-        local targetColor = isOn and CONFIG.COLORS.ON or CONFIG.COLORS.OFF
-        local targetPos = isOn and UDim2.new(0, 39, 0.5, -14) or UDim2.new(0, 3, 0.5, -14)
-        local targetText = isOn and "ON" or "OFF"
-        
-        Tween(SwitchFrame, {BackgroundColor3 = targetColor}, 0.3):Play()
-        Tween(SwitchCircle, {Position = targetPos}, 0.3, Enum.EasingStyle.Elastic):Play()
-        StatusText.Text = targetText
-        
-        SoundSystem.Play(isOn and "ENABLE" or "DISABLE", 0.3)
-        callback(isOn)
-        
-        -- Guardar referencia para actualizar desde código
-        GhostlyHub.Toggles[name] = UpdateToggle
-    end
-    
-    ClickArea.MouseButton1Click:Connect(function()
-        UpdateToggle(not isOn)
-    end)
-    
-    -- Hover effects
-    ToggleFrame.MouseEnter:Connect(function()
-        Tween(Stroke, {Transparency = 0}, 0.2):Play()
-        Tween(ToggleFrame, {BackgroundColor3 = Color3.fromRGB(45, 25, 80)}, 0.2):Play()
-    end)
-    
-    ToggleFrame.MouseLeave:Connect(function()
-        Tween(Stroke, {Transparency = 0.6}, 0.2):Play()
-        Tween(ToggleFrame, {BackgroundColor3 = CONFIG.COLORS.BUTTON_BG}, 0.2):Play()
-    end)
-    
-    return ToggleFrame, UpdateToggle
+})
+
+
+Mining:CreateButton({
+
+Name = "Mejorar daño Pickaxe",
+
+Callback = function()
+
+local pickaxe =
+game.Players.LocalPlayer.Backpack:FindFirstChild("Pickaxe")
+
+
+if pickaxe then
+
+pickaxe:SetAttribute("Damage",999)
+
 end
 
--- Botón de acción especial (Vender Todo)
-function UI.CreateActionButton(parent, title, description, callback, color)
-    local ActionFrame = Instance.new("Frame")
-    ActionFrame.Size = UDim2.new(1, -10, 0, 100)
-    ActionFrame.BackgroundColor3 = color or Color3.fromRGB(60, 30, 100)
-    ActionFrame.BorderSizePixel = 0
-    ActionFrame.Parent = parent
-    
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 18)
-    Corner.Parent = ActionFrame
-    
-    -- Gradiente animado
-    local Gradient = Instance.new("UIGradient")
-    Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, color or CONFIG.COLORS.ACCENT),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(200, 100, 255)),
-        ColorSequenceKeypoint.new(1, color or CONFIG.COLORS.ACCENT)
-    })
-    Gradient.Rotation = 45
-    Gradient.Parent = ActionFrame
-    
-    -- Animar gradiente
-    spawn(function()
-        while ActionFrame and ActionFrame.Parent do
-            Gradient.Rotation = (Gradient.Rotation + 1) % 360
-            task.wait(0.03)
-        end
-    end)
-    
-    -- Título
-    local TitleLabel = Instance.new("TextLabel")
-    TitleLabel.Size = UDim2.new(1, -20, 0, 30)
-    TitleLabel.Position = UDim2.new(0, 15, 0, 15)
-    TitleLabel.BackgroundTransparency = 1
-    TitleLabel.Text = title
-    TitleLabel.TextColor3 = CONFIG.COLORS.TEXT
-    TitleLabel.TextSize = 20
-    TitleLabel.Font = Enum.Font.GothamBlack
-    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TitleLabel.Parent = ActionFrame
-    
-    -- Descripción
-    local DescLabel = Instance.new("TextLabel")
-    DescLabel.Size = UDim2.new(1, -140, 0, 40)
-    DescLabel.Position = UDim2.new(0, 15, 0, 50)
-    DescLabel.BackgroundTransparency = 1
-    DescLabel.Text = description
-    DescLabel.TextColor3 = CONFIG.COLORS.TEXT_DIM
-    DescLabel.TextSize = 12
-    DescLabel.Font = Enum.Font.Gotham
-    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
-    DescLabel.TextWrapped = true
-    DescLabel.Parent = ActionFrame
-    
-    -- Botón principal
-    local ActionBtn = Instance.new("TextButton")
-    ActionBtn.Size = UDim2.new(0, 110, 0, 45)
-    ActionBtn.Position = UDim2.new(1, -125, 0.5, -22)
-    ActionBtn.BackgroundColor3 = Color3.new(1, 1, 1)
-    ActionBtn.Text = "EJECUTAR"
-    ActionBtn.TextColor3 = Color3.fromRGB(30, 10, 50)
-    ActionBtn.TextSize = 14
-    ActionBtn.Font = Enum.Font.GothamBlack
-    ActionBtn.Parent = ActionFrame
-    
-    local BtnCorner = Instance.new("UICorner")
-    BtnCorner.CornerRadius = UDim.new(0, 12)
-    BtnCorner.Parent = ActionBtn
-    
-    -- Indicador de estado
-    local StatusDot = Instance.new("Frame")
-    StatusDot.Size = UDim2.new(0, 12, 0, 12)
-    StatusDot.Position = UDim2.new(1, -30, 0, 15)
-    StatusDot.BackgroundColor3 = CONFIG.COLORS.OFF
-    StatusDot.BorderSizePixel = 0
-    StatusDot.Parent = ActionFrame
-    
-    local DotCorner = Instance.new("UICorner")
-    DotCorner.CornerRadius = UDim.new(1, 0)
-    DotCorner.Parent = StatusDot
-    
-    -- Verificar proximidad al vendedor
-    spawn(function()
-        while ActionFrame and ActionFrame.Parent do
-            local near = false
-            pcall(function()
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") then
-                        if obj.Name:lower():find("sell") or 
-                           obj.Name:lower():find("merchant") or
-                           obj.Name:lower():find("midnight") then
-                            local part = obj:FindFirstChildWhichIsA("BasePart")
-                            if part and HumanoidRootPart then
-                                if (part.Position - HumanoidRootPart.Position).Magnitude < 15 then
-                                    near = true
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-            
-            StatusDot.BackgroundColor3 = near and CONFIG.COLORS.ON or CONFIG.COLORS.OFF
-            
-            if near then
-                ActionBtn.Text = "💰 VENDER"
-                ActionBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
-            else
-                ActionBtn.Text = "ACÉRCATE"
-                ActionBtn.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            end
-            
-            task.wait(0.5)
-        end
-    end)
-    
-    ActionBtn.MouseButton1Click:Connect(function()
-        Tween(ActionBtn, {Size = UDim2.new(0, 105, 0, 42)}, 0.1):Play()
-        task.wait(0.1)
-        Tween(ActionBtn, {Size = UDim2.new(0, 110, 0, 45)}, 0.1):Play()
-        
-        callback()
-    end)
-    
-    return ActionFrame
+
 end
 
--- ═══════════════════════════════════════════════════════════════════════════════
--- INICIALIZAR TODO
--- ═══════════════════════════════════════════════════════════════════════════════
+})
 
-local function Initialize()
-    -- Crear ventana principal
-    local ContentFrame, TabContainer = UI.CreateMainWindow()
-    
-    -- Crear toggles de funciones
-    UI.CreateToggle(ContentFrame, "No Hunger", 
-        "Mantén tu comida al máximo siempre", 
-        function(state) Hacks.FoodSystem.NoHunger(state) end, 
-        "🍔")
-    
-    UI.CreateToggle(ContentFrame, "No Thirst", 
-        "Mantén tu sed al máximo siempre", 
-        function(state) Hacks.FoodSystem.NoThirst(state) end, 
-        "💧")
-    
-    UI.CreateToggle(ContentFrame, "Instant Mine", 
-        "Picar minerales a velocidad ultra rápida", 
-        function(state) Hacks.MiningSystem.InstantMine(state) end, 
-        "⛏️")
-    
-    UI.CreateToggle(ContentFrame, "Noclip", 
-        "Atraviesa paredes (Tecla V para activar)", 
-        function(state) Hacks.NoclipSystem.Toggle(state) end, 
-        "👻")
-    
-    UI.CreateToggle(ContentFrame, "Auto Sell", 
-        "Vende automáticamente al estar cerca del NPC", 
-        function(state) Hacks.SellSystem.AutoSell(state) end, 
-        "🤖")
-    
-    UI.CreateToggle(ContentFrame, "Infinite Stamina", 
-        "Energía infinita para correr", 
-        function(state) Hacks.Extras.InfiniteStamina(state) end, 
-        "⚡")
-    
-    UI.CreateToggle(ContentFrame, "Fast Walk", 
-        "Velocidad de movimiento aumentada", 
-        function(state) Hacks.Extras.FastWalk(state) end, 
-        "🏃")
-    
-    -- Botón especial de vender
-    UI.CreateActionButton(ContentFrame, 
-        "💎 VENDER TODOS LOS MINERALES", 
-        "Vende todos tus minerales al NPC instantáneamente", 
-        function() Hacks.SellSystem.SellAll() end,
-        Color3.fromRGB(80, 40, 120))
-    
-    -- Separador
-    local Separator = Instance.new("Frame")
-    Separator.Size = UDim2.new(1, -20, 0, 2)
-    Separator.BackgroundColor3 = CONFIG.COLORS.ACCENT
-    Separator.BackgroundTransparency = 0.7
-    Separator.BorderSizePixel = 0
-    Separator.Parent = ContentFrame
-    
-    -- Info del juego
-    local InfoFrame = Instance.new("Frame")
-    InfoFrame.Size = UDim2.new(1, -10, 0, 60)
-    InfoFrame.BackgroundColor3 = CONFIG.COLORS.SECONDARY
-    InfoFrame.BorderSizePixel = 0
-    InfoFrame.Parent = ContentFrame
-    
-    local InfoCorner = Instance.new("UICorner")
-    InfoCorner.CornerRadius = UDim.new(0, 12)
-    InfoCorner.Parent = InfoFrame
-    
-    local InfoText = Instance.new("TextLabel")
-    InfoText.Size = UDim2.new(1, -20, 1, -10)
-    InfoText.Position = UDim2.new(0, 10, 0, 5)
-    InfoText.BackgroundTransparency = 1
-    InfoText.Text = "🔧 Controles:\n• INSERT: Mostrar/Ocultar menú\n• V: Activar/Desactivar Noclip\n• Acércate al vendedor para vender"
-    InfoText.TextColor3 = CONFIG.COLORS.TEXT_DIM
-    InfoText.TextSize = 11
-    InfoText.Font = Enum.Font.Gotham
-    InfoText.TextWrapped = true
-    InfoText.Parent = InfoFrame
-    
-    -- Inicializar sistemas
-    Hacks.SellSystem.Initialize()
-    Hacks.FoodSystem.Initialize()
-    Hacks.MiningSystem.Initialize()
-    
-    -- Notificación de inicio
-    task.delay(1, function()
-        NotificationSystem.Show("Ghostly Hub", "Script cargado correctamente", "SUCCESS", 4)
-        NotificationSystem.Show("Versión", "v2.0 - PRISON RP Edition", "INFO", 3)
-    end)
-    
-    print("👻 Ghostly Hub v2.0 cargado | PRISON RP Edition")
-    print("💾 Remote de venta: Midnight Special SellOre")
-    print("🍔 Sistema de comida: Tasks > Cook > Food")
+
+
+-- VENTA
+
+local Sell = Window:CreateTab("💰 Venta",4483362458)
+
+
+
+Sell:CreateButton({
+
+Name = "Vender minerales",
+
+Callback=function()
+
+
+local npc =
+workspace:FindFirstChild("Mineral Buyer")
+
+
+if npc then
+
+local prompt =
+npc:FindFirstChildWhichIsA("ProximityPrompt",true)
+
+
+if prompt then
+
+fireproximityprompt(prompt)
+
 end
 
--- Ejecutar
-Initialize()
+end
+
+
+end
+
+})
+
+
+
+-- TOOLS
+
+local Tools = Window:CreateTab("🔪 Tools",4483362458)
+
+
+
+Tools:CreateButton({
+
+Name="Obtener CombatKnife",
+
+Callback=function()
+
+local tool =
+game.ReplicatedStorage.Tools:FindFirstChild("CombatKnife")
+
+
+if tool then
+
+tool:Clone().Parent =
+game.Players.LocalPlayer.Backpack
+
+end
+
+
+end
+
+})
+
+
+Tools:CreateButton({
+
+Name="Obtener Pistol",
+
+Callback=function()
+
+
+local tool =
+game.ReplicatedStorage.Tools:FindFirstChild("Pistol")
+
+
+if tool then
+
+tool:Clone().Parent =
+game.Players.LocalPlayer.Backpack
+
+end
+
+
+end
+
+})
+
+
+end
