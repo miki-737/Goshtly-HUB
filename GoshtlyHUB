@@ -1,8 +1,8 @@
 --[[
-    GHOST PHARMA SYSTEM v2.0
-    Sistema de Farming Automático para Infinite Yield
-    Optimizado para Delta Executor
-    Temática: Neon Purple Ghost
+    GHOST PHARMA SYSTEM v3.0 - CORREGIDO
+    Sistema de Farming Automático
+    Daño: 1000 (Instantáneo)
+    Compatible con Delta Executor
 --]]
 
 local Players = game:GetService("Players")
@@ -11,10 +11,10 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuración
@@ -22,307 +22,258 @@ local Config = {
     AutoMine = false,
     AutoSell = false,
     DamageModifier = false,
-    DamageAmount = 70,
-    TeleportOffset = CFrame.new(0, 3, 0),
-    MineDelay = 0.1,
-    SellDelay = 0.5
+    DamageAmount = 1000, -- Daño instantáneo
+    MineDelay = 0.05
 }
 
--- Colores de la temática GHOST
+-- Colores GHOST
 local Colors = {
-    Primary = Color3.fromRGB(138, 43, 226), -- Violeta
-    Secondary = Color3.fromRGB(75, 0, 130), -- Índigo
-    Accent = Color3.fromRGB(255, 0, 255), -- Magenta
-    Dark = Color3.fromRGB(20, 0, 40), -- Negro púrpura
-    Light = Color3.fromRGB(230, 230, 255), -- Blanco azulado
-    Neon = Color3.fromRGB(157, 0, 255) -- Neón púrpura
+    Primary = Color3.fromRGB(138, 43, 226),
+    Secondary = Color3.fromRGB(75, 0, 130),
+    Accent = Color3.fromRGB(255, 0, 255),
+    Dark = Color3.fromRGB(20, 0, 40),
+    Light = Color3.fromRGB(255, 255, 255),
+    Neon = Color3.fromRGB(157, 0, 255),
+    Black = Color3.fromRGB(0, 0, 0)
 }
 
--- Crear GUI Principal
+-- Crear GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GHOST_Pharma"
+ScreenGui.Name = "GHOST_Pharma_v3"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Marco Principal con efecto de desenfoque
+-- Botón flotante para abrir (visible cuando está minimizado)
+local FloatingButton = Instance.new("TextButton")
+FloatingButton.Name = "FloatingGhost"
+FloatingButton.Size = UDim2.new(0, 60, 0, 60)
+FloatingButton.Position = UDim2.new(0, 20, 0.5, -30)
+FloatingButton.BackgroundColor3 = Colors.Primary
+FloatingButton.Text = "👻"
+FloatingButton.TextSize = 35
+FloatingButton.BorderSizePixel = 0
+FloatingButton.Parent = ScreenGui
+FloatingButton.Visible = false
+
+local FloatingCorner = Instance.new("UICorner")
+FloatingCorner.CornerRadius = UDim.new(1, 0)
+FloatingCorner.Parent = FloatingButton
+
+local FloatingStroke = Instance.new("UIStroke")
+FloatingStroke.Color = Colors.Accent
+FloatingStroke.Thickness = 3
+FloatingStroke.Parent = FloatingButton
+
+-- Marco Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 450, 0, 550)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
-MainFrame.BackgroundColor3 = Colors.Dark
-MainFrame.BackgroundTransparency = 0.1
+MainFrame.Size = UDim2.new(0, 400, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+MainFrame.BackgroundColor3 = Colors.Black
+MainFrame.BackgroundTransparency = 0.2
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Esquinas redondeadas
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 20)
-UICorner.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 15)
+MainCorner.Parent = MainFrame
 
--- Borde de neón
-local NeonBorder = Instance.new("UIStroke")
-NeonBorder.Color = Colors.Neon
-NeonBorder.Thickness = 3
-NeonBorder.Parent = MainFrame
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Colors.Neon
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
 
--- Gradiente de fondo
-local UIGradient = Instance.new("UIGradient")
-UIGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Colors.Dark),
-    ColorSequenceKeypoint.new(0.5, Colors.Secondary),
-    ColorSequenceKeypoint.new(1, Colors.Dark)
-})
-UIGradient.Parent = MainFrame
+-- Logo del Fantasma (usando emoji y texto estilizado)
+local LogoFrame = Instance.new("Frame")
+LogoFrame.Name = "LogoFrame"
+LogoFrame.Size = UDim2.new(0, 80, 0, 80)
+LogoFrame.Position = UDim2.new(0.5, -40, 0, 10)
+LogoFrame.BackgroundColor3 = Colors.Primary
+LogoFrame.BorderSizePixel = 0
+LogoFrame.Parent = MainFrame
+
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(1, 0)
+LogoCorner.Parent = LogoFrame
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Color = Colors.Accent
+LogoStroke.Thickness = 3
+LogoStroke.Parent = LogoFrame
+
+local LogoText = Instance.new("TextLabel")
+LogoText.Size = UDim2.new(1, 0, 1, 0)
+LogoText.BackgroundTransparency = 1
+LogoText.Text = "👻"
+LogoText.TextSize = 50
+LogoText.Parent = LogoFrame
 
 -- Barra de título
 local TitleBar = Instance.new("Frame")
-TitleBar.Name = "TitleBar"
-TitleBar.Size = UDim2.new(1, 0, 0, 60)
+TitleBar.Size = UDim2.new(1, 0, 0, 50)
+TitleBar.Position = UDim2.new(0, 0, 0, 95)
 TitleBar.BackgroundColor3 = Colors.Secondary
-TitleBar.BackgroundTransparency = 0.3
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = MainFrame
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 20)
-TitleCorner.Parent = TitleBar
-
 local TitleText = Instance.new("TextLabel")
-TitleText.Name = "Title"
-TitleText.Size = UDim2.new(1, -60, 1, 0)
-TitleText.Position = UDim2.new(0, 20, 0, 0)
+TitleText.Size = UDim2.new(1, -100, 1, 0)
+TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "👻 GHOST PHARMA SYSTEM"
+TitleText.Text = "GHOST PHARMA v3.0"
 TitleText.TextColor3 = Colors.Light
-TitleText.TextSize = 28
+TitleText.TextSize = 22
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.Parent = TitleBar
 
--- Efecto de brillo en el título
-local TitleGlow = Instance.new("UIStroke")
-TitleGlow.Color = Colors.Accent
-TitleGlow.Thickness = 2
-TitleGlow.Parent = TitleText
+-- BOTÓN MINIMIZAR
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Name = "MinimizeBtn"
+MinimizeBtn.Size = UDim2.new(0, 35, 0, 35)
+MinimizeBtn.Position = UDim2.new(1, -80, 0, 7)
+MinimizeBtn.BackgroundColor3 = Colors.Accent
+MinimizeBtn.Text = "—"
+MinimizeBtn.TextColor3 = Colors.Light
+MinimizeBtn.TextSize = 20
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Parent = TitleBar
 
--- Botón de cerrar
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 40, 0, 40)
-CloseButton.Position = UDim2.new(1, -50, 0, 10)
-CloseButton.BackgroundColor3 = Colors.Accent
-CloseButton.Text = "X"
-CloseButton.TextColor3 = Colors.Light
-CloseButton.TextSize = 24
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Parent = TitleBar
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = MinimizeBtn
+
+-- BOTÓN CERRAR
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -40, 0, 7)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Colors.Light
+CloseBtn.TextSize = 20
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = TitleBar
 
 local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 10)
-CloseCorner.Parent = CloseButton
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
 
--- Contenedor de pestañas
-local TabContainer = Instance.new("Frame")
-TabContainer.Name = "TabContainer"
-TabContainer.Size = UDim2.new(1, -40, 0, 50)
-TabContainer.Position = UDim2.new(0, 20, 0, 75)
-TabContainer.BackgroundTransparency = 1
-TabContainer.Parent = MainFrame
-
-local TabLayout = Instance.new("UIListLayout")
-TabLayout.FillDirection = Enum.FillDirection.Horizontal
-TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-TabLayout.Padding = UDim.new(0, 10)
-TabLayout.Parent = TabContainer
-
--- Contenido de pestañas
+-- Contenedor principal de botones
 local ContentFrame = Instance.new("Frame")
-ContentFrame.Name = "ContentFrame"
-ContentFrame.Size = UDim2.new(1, -40, 1, -150)
-ContentFrame.Position = UDim2.new(0, 20, 0, 135)
-ContentFrame.BackgroundColor3 = Colors.Secondary
+ContentFrame.Size = UDim2.new(1, -20, 1, -165)
+ContentFrame.Position = UDim2.new(0, 10, 0, 155)
+ContentFrame.BackgroundColor3 = Colors.Dark
 ContentFrame.BackgroundTransparency = 0.5
 ContentFrame.BorderSizePixel = 0
 ContentFrame.Parent = MainFrame
 
 local ContentCorner = Instance.new("UICorner")
-ContentCorner.CornerRadius = UDim.new(0, 15)
+ContentCorner.CornerRadius = UDim.new(0, 10)
 ContentCorner.Parent = ContentFrame
 
--- Función para crear pestañas
-local CurrentTab = nil
-local function CreateTab(name, icon)
-    local TabButton = Instance.new("TextButton")
-    TabButton.Name = name.."Tab"
-    TabButton.Size = UDim2.new(0, 120, 1, 0)
-    TabButton.BackgroundColor3 = Colors.Primary
-    TabButton.Text = icon.." "..name
-    TabButton.TextColor3 = Colors.Light
-    TabButton.TextSize = 16
-    TabButton.Font = Enum.Font.GothamSemibold
-    TabButton.Parent = TabContainer
-    
-    local TabCorner = Instance.new("UICorner")
-    TabCorner.CornerRadius = UDim.new(0, 10)
-    TabCorner.Parent = TabButton
-    
-    local TabContent = Instance.new("Frame")
-    TabContent.Name = name.."Content"
-    TabContent.Size = UDim2.new(1, -20, 1, -20)
-    TabContent.Position = UDim2.new(0, 10, 0, 10)
-    TabContent.BackgroundTransparency = 1
-    TabContent.Visible = false
-    TabContent.Parent = ContentFrame
-    
-    TabButton.MouseButton1Click:Connect(function()
-        if CurrentTab then
-            CurrentTab.Visible = false
-        end
-        TabContent.Visible = true
-        CurrentTab = TabContent
-        
-        -- Animación de selección
-        for _, btn in ipairs(TabContainer:GetChildren()) do
-            if btn:IsA("TextButton") then
-                TweenService:Create(btn, TweenInfo.new(0.3), {BackgroundColor3 = Colors.Primary}):Play()
-            end
-        end
-        TweenService:Create(TabButton, TweenInfo.new(0.3), {BackgroundColor3 = Colors.Accent}):Play()
-    end)
-    
-    return TabContent, TabButton
-end
+-- ScrollFrame para los botones
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 5
+ScrollFrame.ScrollBarImageColor3 = Colors.Accent
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 400)
+ScrollFrame.Parent = ContentFrame
 
--- Crear pestañas
-local MineTab, MineBtn = CreateTab("MINAR", "⛏️")
-local SellTab, SellBtn = CreateTab("VENDER", "💰")
-local SettingsTab, SettingsBtn = CreateTab("AJUSTES", "⚙️")
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.Parent = ScrollFrame
 
--- Seleccionar primera pestaña
-MineTab.Visible = true
-CurrentTab = MineTab
-MineBtn.BackgroundColor3 = Colors.Accent
+-- Variables de control
+local IsMinimized = false
+local AutoMineActive = false
+local AutoSellActive = false
 
--- Función para crear toggle switches estilo GHOST
-local function CreateToggle(parent, text, configKey, callback, yPos)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Name = text.."Toggle"
-    ToggleFrame.Size = UDim2.new(1, 0, 0, 60)
-    ToggleFrame.Position = UDim2.new(0, 0, 0, yPos)
-    ToggleFrame.BackgroundColor3 = Colors.Dark
-    ToggleFrame.BackgroundTransparency = 0.5
-    ToggleFrame.BorderSizePixel = 0
-    ToggleFrame.Parent = parent
+-- Función para crear botones toggle
+local function CreateToggleButton(name, configKey, callback)
+    local ButtonFrame = Instance.new("Frame")
+    ButtonFrame.Size = UDim2.new(0.9, 0, 0, 60)
+    ButtonFrame.BackgroundColor3 = Colors.Secondary
+    ButtonFrame.BorderSizePixel = 0
     
-    local ToggleCorner = Instance.new("UICorner")
-    ToggleCorner.CornerRadius = UDim.new(0, 12)
-    ToggleCorner.Parent = ToggleFrame
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 10)
+    ButtonCorner.Parent = ButtonFrame
     
-    -- Borde neón
-    local ToggleStroke = Instance.new("UIStroke")
-    ToggleStroke.Color = Colors.Neon
-    ToggleStroke.Thickness = 1
-    ToggleStroke.Transparency = 0.5
-    ToggleStroke.Parent = ToggleFrame
+    local ButtonStroke = Instance.new("UIStroke")
+    ButtonStroke.Color = Colors.Neon
+    ButtonStroke.Thickness = 1
+    ButtonStroke.Parent = ButtonFrame
     
     local Label = Instance.new("TextLabel")
-    Label.Name = "Label"
-    Label.Size = UDim2.new(0.7, 0, 1, 0)
+    Label.Size = UDim2.new(0.6, 0, 1, 0)
     Label.Position = UDim2.new(0, 15, 0, 0)
     Label.BackgroundTransparency = 1
-    Label.Text = text
+    Label.Text = name
     Label.TextColor3 = Colors.Light
-    Label.TextSize = 20
-    Label.Font = Enum.Font.GothamSemibold
+    Label.TextSize = 18
+    Label.Font = Enum.Font.GothamBold
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Parent = ToggleFrame
+    Label.Parent = ButtonFrame
     
-    -- Switch container
-    local SwitchContainer = Instance.new("Frame")
-    SwitchContainer.Name = "SwitchContainer"
-    SwitchContainer.Size = UDim2.new(0, 70, 0, 35)
-    SwitchContainer.Position = UDim2.new(1, -85, 0.5, -17)
-    SwitchContainer.BackgroundColor3 = Colors.Secondary
-    SwitchContainer.BorderSizePixel = 0
-    SwitchContainer.Parent = ToggleFrame
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Name = "Toggle"
+    ToggleBtn.Size = UDim2.new(0, 80, 0, 40)
+    ToggleBtn.Position = UDim2.new(1, -95, 0.5, -20)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    ToggleBtn.Text = "OFF"
+    ToggleBtn.TextColor3 = Colors.Light
+    ToggleBtn.TextSize = 16
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Parent = ButtonFrame
     
-    local SwitchCorner = Instance.new("UICorner")
-    SwitchCorner.CornerRadius = UDim.new(1, 0)
-    SwitchCorner.Parent = SwitchContainer
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 8)
+    ToggleCorner.Parent = ToggleBtn
     
-    -- Switch knob
-    local SwitchKnob = Instance.new("Frame")
-    SwitchKnob.Name = "Knob"
-    SwitchKnob.Size = UDim2.new(0, 25, 0, 25)
-    SwitchKnob.Position = UDim2.new(0, 5, 0.5, -12)
-    SwitchKnob.BackgroundColor3 = Colors.Light
-    SwitchKnob.BorderSizePixel = 0
-    SwitchKnob.Parent = SwitchContainer
+    local isActive = false
     
-    local KnobCorner = Instance.new("UICorner")
-    KnobCorner.CornerRadius = UDim.new(1, 0)
-    KnobCorner.Parent = SwitchKnob
-    
-    -- Glow effect
-    local KnobGlow = Instance.new("UIStroke")
-    KnobGlow.Color = Colors.Accent
-    KnobGlow.Thickness = 2
-    KnobGlow.Parent = SwitchKnob
-    
-    local isOn = Config[configKey]
-    
-    local function UpdateToggle()
-        local targetColor = isOn and Colors.Accent or Colors.Secondary
-        local targetPos = isOn and UDim2.new(1, -30, 0.5, -12) or UDim2.new(0, 5, 0.5, -12)
+    ToggleBtn.MouseButton1Click:Connect(function()
+        isActive = not isActive
+        Config[configKey] = isActive
         
-        TweenService:Create(SwitchContainer, TweenInfo.new(0.3), {BackgroundColor3 = targetColor}):Play()
-        TweenService:Create(SwitchKnob, TweenInfo.new(0.3), {Position = targetPos}):Play()
-        
-        Config[configKey] = isOn
-        if callback then
-            callback(isOn)
+        if isActive then
+            ToggleBtn.BackgroundColor3 = Colors.Accent
+            ToggleBtn.Text = "ON"
+            -- Efecto de brillo
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {Size = UDim2.new(0, 85, 0, 42)}):Play()
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {Size = UDim2.new(0, 80, 0, 40)}):Play()
+        else
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            ToggleBtn.Text = "OFF"
         end
-    end
-    
-    -- Click handler
-    local ClickArea = Instance.new("TextButton")
-    ClickArea.Name = "ClickArea"
-    ClickArea.Size = UDim2.new(1, 0, 1, 0)
-    ClickArea.BackgroundTransparency = 1
-    ClickArea.Text = ""
-    ClickArea.Parent = ToggleFrame
-    
-    ClickArea.MouseButton1Click:Connect(function()
-        isOn = not isOn
-        UpdateToggle()
+        
+        if callback then
+            callback(isActive)
+        end
     end)
     
-    -- Estado inicial
-    if isOn then
-        SwitchContainer.BackgroundColor3 = Colors.Accent
-        SwitchKnob.Position = UDim2.new(1, -30, 0.5, -12)
-    end
-    
-    return ToggleFrame
+    ButtonFrame.Parent = ScrollFrame
+    return ButtonFrame
 end
 
 -- Función para crear botones de acción
-local function CreateActionButton(parent, text, callback, yPos, color)
+local function CreateActionButton(name, callback, color)
     local Button = Instance.new("TextButton")
-    Button.Name = text.."Button"
-    Button.Size = UDim2.new(1, 0, 0, 50)
-    Button.Position = UDim2.new(0, 0, 0, yPos)
+    Button.Size = UDim2.new(0.9, 0, 0, 50)
     Button.BackgroundColor3 = color or Colors.Primary
-    Button.Text = text
+    Button.Text = name
     Button.TextColor3 = Colors.Light
     Button.TextSize = 18
     Button.Font = Enum.Font.GothamBold
-    Button.Parent = parent
+    Button.BorderSizePixel = 0
     
     local ButtonCorner = Instance.new("UICorner")
-    ButtonCorner.CornerRadius = UDim.new(0, 12)
+    ButtonCorner.CornerRadius = UDim.new(0, 10)
     ButtonCorner.Parent = Button
     
     local ButtonStroke = Instance.new("UIStroke")
@@ -334,147 +285,137 @@ local function CreateActionButton(parent, text, callback, yPos, color)
     -- Efecto hover
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
-        TweenService:Create(Button, TweenInfo.new(0.2), {Size = UDim2.new(1, 10, 0, 55)}):Play()
     end)
     
     Button.MouseLeave:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = color or Colors.Primary}):Play()
-        TweenService:Create(Button, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 50)}):Play()
     end)
     
-    Button.MouseButton1Click:Connect(callback)
+    Button.MouseButton1Click:Connect(function()
+        -- Efecto de clic
+        TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(0.85, 0, 0, 45)}):Play()
+        task.wait(0.1)
+        TweenService:Create(Button, TweenInfo.new(0.1), {Size = UDim2.new(0.9, 0, 0, 50)}):Play()
+        
+        callback()
+    end)
     
+    Button.Parent = ScrollFrame
     return Button
 end
 
--- ========== CONTENIDO PESTAÑA MINAR ==========
+-- Función para crear separadores
+local function CreateSeparator(text)
+    local Separator = Instance.new("Frame")
+    Separator.Size = UDim2.new(0.9, 0, 0, 30)
+    Separator.BackgroundTransparency = 1
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = "═══ " .. text .. " ═══"
+    Label.TextColor3 = Colors.Accent
+    Label.TextSize = 14
+    Label.Font = Enum.Font.GothamBold
+    Label.Parent = Separator
+    
+    Separator.Parent = ScrollFrame
+end
+
+-- ========== CREAR BOTONES ==========
+
+CreateSeparator("⚒️ MINADO")
+
 -- Auto Mine Toggle
-CreateToggle(MineTab, "⛏️ Auto Minar", "AutoMine", function(value)
-    if value then
+CreateToggleButton("⛏️ Auto Minar + TP", "AutoMine", function(active)
+    if active then
         StartAutoMine()
     else
         StopAutoMine()
     end
-end, 10)
+end)
 
--- Teleport to Ores Button
-CreateActionButton(MineTab, "🎯 Teletransportar a Piedras", function()
+-- TP a Ores
+CreateActionButton("🎯 TP a Piedra Cercana", function()
     TeleportToNearestOre()
-end, 80, Colors.Primary)
+end, Colors.Primary)
 
--- Info label
-local MineInfo = Instance.new("TextLabel")
-MineInfo.Size = UDim2.new(1, 0, 0, 100)
-MineInfo.Position = UDim2.new(0, 0, 0, 140)
-MineInfo.BackgroundTransparency = 1
-MineInfo.Text = "💡 El Auto Minar te teletransportará automáticamente a las piedras más cercanas y las picará.\n\n🪨 Soporta: Azurith, RawIron, Coal, RawCopper, RawGold"
-MineInfo.TextColor3 = Colors.Light
-MineInfo.TextSize = 14
-MineInfo.Font = Enum.Font.Gotham
-MineInfo.TextWrapped = true
-MineInfo.Parent = MineTab
+CreateSeparator("💰 VENTA")
 
--- ========== CONTENIDO PESTAÑA VENDER ==========
 -- Auto Sell Toggle
-CreateToggle(SellTab, "💰 Auto Vender", "AutoSell", function(value)
-    if value then
+CreateToggleButton("💵 Auto Vender", "AutoSell", function(active)
+    if active then
         StartAutoSell()
     else
         StopAutoSell()
     end
-end, 10)
+end)
 
--- Sell All Button
-CreateActionButton(SellTab, "💵 Vender Todo Ahora", function()
+-- Vender Todo
+CreateActionButton("💸 Vender Todo Ahora", function()
     SellAllMaterials()
-end, 80, Colors.Accent)
+end, Color3.fromRGB(0, 200, 100))
 
--- Materiales info
-local MaterialsLabel = Instance.new("TextLabel")
-MaterialsLabel.Size = UDim2.new(1, 0, 0, 200)
-MaterialsLabel.Position = UDim2.new(0, 0, 0, 140)
-MaterialsLabel.BackgroundTransparency = 1
-MaterialsLabel.Text = "📦 Materiales detectados:\n• Azurith\n• Raw Iron\n• Coal\n• Raw Copper\n• Raw Gold\n\n💰 Se venderán automáticamente cuando esté activado."
-MaterialsLabel.TextColor3 = Colors.Light
-MaterialsLabel.TextSize = 16
-MaterialsLabel.Font = Enum.Font.Gotham
-MaterialsLabel.TextWrapped = true
-MaterialsLabel.Parent = SellTab
+CreateSeparator("⚔️ HERRAMIENTAS")
 
--- ========== CONTENIDO PESTAÑA AJUSTES ==========
 -- Damage Modifier Toggle
-CreateToggle(SettingsTab, "⚔️ Modificador de Daño (70)", "DamageModifier", function(value)
-    if value then
+CreateToggleButton("🔥 Daño 1000 (Instant)", "DamageModifier", function(active)
+    if active then
         EnableDamageModifier()
     else
         DisableDamageModifier()
     end
-end, 10)
+end)
 
--- Info de daño
-local DamageInfo = Instance.new("TextLabel")
-DamageInfo.Size = UDim2.new(1, 0, 0, 60)
-DamageInfo.Position = UDim2.new(0, 0, 0, 80)
-DamageInfo.BackgroundTransparency = 1
-DamageInfo.Text = "🔥 Daño actual: 70\n⚡ Se aplica automáticamente al picar"
-DamageInfo.TextColor3 = Colors.Accent
-DamageInfo.TextSize = 16
-DamageInfo.Font = Enum.Font.GothamBold
-DamageInfo.TextWrapped = true
-DamageInfo.Parent = SettingsTab
+CreateSeparator("ℹ️ INFO")
 
--- Slider de delay (simulado con botones)
-local DelayLabel = Instance.new("TextLabel")
-DelayLabel.Size = UDim2.new(1, 0, 0, 30)
-DelayLabel.Position = UDim2.new(0, 0, 0, 150)
-DelayLabel.BackgroundTransparency = 1
-DelayLabel.Text = "⏱️ Velocidad de Minado:"
-DelayLabel.TextColor3 = Colors.Light
-DelayLabel.TextSize = 16
-DelayLabel.Font = Enum.Font.GothamSemibold
-DelayLabel.Parent = SettingsTab
-
-CreateActionButton(SettingsTab, "🚀 Ultra Rápido (0.05s)", function()
-    Config.MineDelay = 0.05
-    DelayLabel.Text = "⏱️ Velocidad: Ultra Rápido (0.05s)"
-end, 190, Color3.fromRGB(255, 100, 100))
-
-CreateActionButton(SettingsTab, "⚡ Rápido (0.1s)", function()
-    Config.MineDelay = 0.1
-    DelayLabel.Text = "⏱️ Velocidad: Rápido (0.1s)"
-end, 250, Color3.fromRGB(255, 150, 50))
-
-CreateActionButton(SettingsTab, "🐢 Normal (0.5s)", function()
-    Config.MineDelay = 0.5
-    DelayLabel.Text = "⏱️ Velocidad: Normal (0.5s)"
-end, 310, Color3.fromRGB(100, 255, 100))
+-- Info Label
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(0.9, 0, 0, 60)
+InfoLabel.BackgroundTransparency = 1
+InfoLabel.Text = "Daño: 1000 (One-Hit)\nDelay: 0.05s (Ultra)\nEconomy: ReplicatedStorage"
+InfoLabel.TextColor3 = Colors.Light
+InfoLabel.TextSize = 12
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextWrapped = true
+InfoLabel.Parent = ScrollFrame
 
 -- ========== FUNCIONALIDAD ==========
 
--- Variables de control
-local AutoMineRunning = false
-local AutoSellRunning = false
-local DamageModEnabled = false
+-- Encontrar ores en el juego
+local function FindOres()
+    local ores = {}
+    
+    -- Buscar en Workspace (donde están los ores físicos)
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+            local name = obj.Name:lower()
+            -- Detectar tipos de ores
+            if name:find("ore") or name:find("rock") or name:find("stone") or 
+               name:find("azurith") or name:find("coal") or name:find("copper") or 
+               name:find("gold") or name:find("iron") or name:find("mineral") then
+                table.insert(ores, obj)
+            end
+        end
+    end
+    
+    return ores
+end
 
--- Función para encontrar ores cercanos
+-- Encontrar el ore más cercano
 local function FindNearestOre()
     local nearest = nil
     local minDistance = math.huge
     
-    local oreNames = {"Ore", "Rock", "Stone", "Azurith", "RawIron", "Coal", "RawCopper", "RawGold", 
-                    "Iron", "Copper", "Gold", "Cobblestone", "Mineral"}
-    
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-            local nameLower = obj.Name:lower()
-            for _, oreName in ipairs(oreNames) do
-                if nameLower:find(oreName:lower()) then
-                    local distance = (obj.Position - HumanoidRootPart.Position).magnitude
-                    if distance < minDistance and distance < 100 then
-                        minDistance = distance
-                        nearest = obj
-                    end
-                end
+    for _, ore in ipairs(FindOres()) do
+        if ore and ore.Parent then
+            local success, distance = pcall(function()
+                return (ore.Position - HumanoidRootPart.Position).Magnitude
+            end)
+            
+            if success and distance < minDistance and distance < 200 then
+                minDistance = distance
+                nearest = ore
             end
         end
     end
@@ -482,245 +423,109 @@ local function FindNearestOre()
     return nearest
 end
 
--- Función para picar
+-- Función para picar con daño 1000
 local function MineOre(ore)
-    if not ore then return end
+    if not ore or not ore.Parent then return end
     
-    -- Teletransportar
-    HumanoidRootPart.CFrame = ore.CFrame * Config.TeleportOffset
+    -- Teletransportar al ore
+    pcall(function()
+        HumanoidRootPart.CFrame = ore.CFrame * CFrame.new(0, 5, 0)
+    end)
     
-    -- Activar herramienta de picar si existe
+    -- Esperar un frame para que cargue
+    task.wait(0.05)
+    
+    -- Intentar diferentes métodos de minado
+    
+    -- 1. Fire RemoteEvent comunes
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Mine"):FireServer(ore, Config.DamageAmount)
+    end)
+    
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DamageOre"):FireServer(ore, Config.DamageAmount)
+    end)
+    
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Mine"):FireServer(ore, Config.DamageAmount)
+    end)
+    
+    -- 2. Usar herramienta si existe
     local tool = Character:FindFirstChildOfClass("Tool")
     if tool then
-        tool:Activate()
-    else
-        -- Simular clic si no hay herramienta
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+        pcall(function()
+            tool:Activate()
+        end)
+        
+        -- Modificar daño de la herramienta
+        if tool:FindFirstChild("Damage") then
+            tool.Damage.Value = Config.DamageAmount
+        end
     end
     
-    -- Fire remote events comunes de minado
-    local args = {
-        [1] = ore,
-        [2] = Config.DamageModifier and Config.DamageAmount or 1
-    }
-    
-    -- Intentar diferentes remotos comunes
+    -- 3. Simular input de mouse
     pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MineOre"):FireServer(unpack(args))
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+        task.wait(0.01)
+        VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
     end)
     
+    -- 4. Intentar con Economy/Ores si existe
     pcall(function()
-        ReplicatedStorage:WaitForChild("Mine"):FireServer(ore)
+        local Economy = ReplicatedStorage:WaitForChild("Economy")
+        if Economy then
+            local Ores = Economy:FindFirstChild("Ores")
+            if Ores then
+                -- Intentar encontrar el ore en la carpeta Economy
+                for _, oreData in ipairs(Ores:GetChildren()) do
+                    if oreData.Name == ore.Name then
+                        -- Fire server con el ore data
+                        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MineOre"):FireServer(oreData, Config.DamageAmount)
+                    end
+                end
+            end
+        end
     end)
-    
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Mine"):FireServer(ore)
-    end)
-    
-    -- Efecto visual
-    local beam = Instance.new("Part")
-    beam.Size = Vector3.new(0.2, 0.2, (ore.Position - HumanoidRootPart.Position).magnitude)
-    beam.CFrame = CFrame.lookAt(HumanoidRootPart.Position, ore.Position) * CFrame.new(0, 0, -beam.Size.Z/2)
-    beam.Anchored = true
-    beam.CanCollide = false
-    beam.Color = Colors.Accent
-    beam.Material = Enum.Material.Neon
-    beam.Parent = workspace
-    
-    game:GetService("Debris"):AddItem(beam, 0.1)
 end
 
 -- Auto Mine Loop
 local MineConnection = nil
+
 function StartAutoMine()
-    if AutoMineRunning then return end
-    AutoMineRunning = true
+    if AutoMineActive then return end
+    AutoMineActive = true
     
-    MineConnection = RunService.Heartbeat:Connect(function()
-        if not AutoMineRunning then return end
-        
-        local ore = FindNearestOre()
-        if ore then
-            MineOre(ore)
+    -- Crear hilo separado para minado
+    task.spawn(function()
+        while AutoMineActive do
+            if not AutoMineActive then break end
+            
+            local ore = FindNearestOre()
+            if ore then
+                MineOre(ore)
+            end
+            
+            task.wait(Config.MineDelay)
         end
-        
-        task.wait(Config.MineDelay)
     end)
+    
+    print("✅ Auto Minar ACTIVADO")
 end
 
 function StopAutoMine()
-    AutoMineRunning = false
-    if MineConnection then
-        MineConnection:Disconnect()
-        MineConnection = nil
-    end
+    AutoMineActive = false
+    print("❌ Auto Minar DESACTIVADO")
 end
 
 function TeleportToNearestOre()
     local ore = FindNearestOre()
     if ore then
-        HumanoidRootPart.CFrame = ore.CFrame * Config.TeleportOffset
-        
-        -- Efecto de partículas
-        for i = 1, 10 do
-            local particle = Instance.new("Part")
-            particle.Shape = Enum.PartType.Ball
-            particle.Size = Vector3.new(0.5, 0.5, 0.5)
-            particle.Position = HumanoidRootPart.Position + Vector3.new(math.random(-5,5), math.random(-5,5), math.random(-5,5))
-            particle.Color = Colors.Accent
-            particle.Material = Enum.Material.Neon
-            particle.Anchored = false
-            particle.Parent = workspace
-            game:GetService("Debris"):AddItem(particle, 1)
-        end
-    end
-end
-
--- Auto Sell
-local SellConnection = nil
-function StartAutoSell()
-    if AutoSellRunning then return end
-    AutoSellRunning = true
-    
-    SellConnection = RunService.Heartbeat:Connect(function()
-        if not AutoSellRunning then return end
-        
-        SellAllMaterials()
-        task.wait(Config.SellDelay)
-    end)
-end
-
-function StopAutoSell()
-    AutoSellRunning = false
-    if SellConnection then
-        SellConnection:Disconnect()
-        SellConnection = nil
-    end
-end
-
-function SellAllMaterials()
-    -- Intentar diferentes métodos de venta comunes
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SellAll"):FireServer()
-    end)
-    
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Sell"):FireServer()
-    end)
-    
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Sell"):FireServer()
-    end)
-    
-    -- Intentar vender items específicos
-    local materials = {"Azurith", "RawIron", "Coal", "RawCopper", "RawGold", 
-                     "Iron", "Copper", "Gold", "Stone", "Ore"}
-    
-    for _, material in ipairs(materials) do
         pcall(function()
-            ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SellItem"):FireServer(material)
+            HumanoidRootPart.CFrame = ore.CFrame * CFrame.new(0, 5, 0)
         end)
-    end
-end
-
--- Damage Modifier
-function EnableDamageModifier()
-    DamageModEnabled = true
-    
-    -- Hook a herramientas
-    Character.ChildAdded:Connect(function(child)
-        if child:IsA("Tool") and DamageModEnabled then
-            local tool = child
-            task.wait(0.1)
-            
-            -- Modificar daño si existe
-            if tool:FindFirstChild("Damage") then
-                tool.Damage.Value = Config.DamageAmount
-            end
-            
-            -- Conectar al activar
-            tool.Activated:Connect(function()
-                if DamageModEnabled then
-                    -- Fire con daño modificado
-                    pcall(function()
-                        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DealDamage"):FireServer(Config.DamageAmount)
-                    end)
-                end
-            end)
-        end
-    end)
-end
-
-function DisableDamageModifier()
-    DamageModEnabled = false
-end
-
--- Cerrar GUI
-CloseButton.MouseButton1Click:Connect(function()
-    -- Animación de cierre
-    TweenService:Create(MainFrame, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-    TweenService:Create(MainFrame, TweenInfo.new(0.5), {Rotation = 360}):Play()
-    
-    task.wait(0.5)
-    ScreenGui:Destroy()
-    
-    -- Detener loops
-    StopAutoMine()
-    StopAutoSell()
-end)
-
--- Minimizar/Maximizar con tecla (RightShift)
-local isVisible = true
-UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        isVisible = not isVisible
-        MainFrame.Visible = isVisible
-    end
-end)
-
--- Notificación de inicio
-local Notification = Instance.new("Frame")
-Notification.Name = "Notification"
-Notification.Size = UDim2.new(0, 300, 0, 80)
-Notification.Position = UDim2.new(1, -320, 1, -100)
-Notification.BackgroundColor3 = Colors.Dark
-Notification.BorderSizePixel = 0
-Notification.Parent = ScreenGui
-
-local NotifCorner = Instance.new("UICorner")
-NotifCorner.CornerRadius = UDim.new(0, 15)
-NotifCorner.Parent = Notification
-
-local NotifStroke = Instance.new("UIStroke")
-NotifStroke.Color = Colors.Neon
-NotifStroke.Thickness = 2
-NotifStroke.Parent = Notification
-
-local NotifText = Instance.new("TextLabel")
-NotifText.Size = UDim2.new(1, -20, 1, 0)
-NotifText.Position = UDim2.new(0, 10, 0, 0)
-NotifText.BackgroundTransparency = 1
-NotifText.Text = "👻 GHOST PHARMA ACTIVADO\nPresiona RightShift para ocultar/mostrar"
-NotifText.TextColor3 = Colors.Light
-NotifText.TextSize = 16
-NotifText.Font = Enum.Font.GothamBold
-NotifText.TextWrapped = true
-NotifText.Parent = Notification
-
--- Animación de entrada
-Notification.Position = UDim2.new(1, 320, 1, -100)
-TweenService:Create(Notification, TweenInfo.new(0.5, Enum.EasingStyle.Bounce), 
-    {Position = UDim2.new(1, -320, 1, -100)}):Play()
-
--- Ocultar notificación después de 5 segundos
-task.delay(5, function()
-    TweenService:Create(Notification, TweenInfo.new(0.5), 
-        {Position = UDim2.new(1, 320, 1, -100)}):Play()
-    task.wait(0.5)
-    Notification:Destroy()
-end)
-
-print("👻 GHOST PHARMA SYSTEM v2.0 - Cargado correctamente")
-print("🔧 Desarrollado para Delta Executor")
-print("⚡ Presiona RightShift para mostrar/ocultar")
+        
+        -- Efecto visual
+        local ring = Instance.new("Part")
+        ring.Shape = Enum.PartType.Cylinder
+        ring.Size = Vector3.new(0.1, 10, 10)
+        ring.CFrame = Human
